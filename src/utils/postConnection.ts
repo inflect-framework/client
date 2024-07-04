@@ -1,9 +1,15 @@
 import axios from 'axios';
 
+interface PostConnectionResult {
+  sourceTopic: string;
+  targetTopic: string;
+  transformation: string;
+}
+
 export const postConnection = async (
-  sourceTopic,
-  targetTopic,
-  transformation
+  sourceTopic: string,
+  targetTopic: string,
+  transformation: string
 ) => {
   const body = {
     sourceTopic,
@@ -18,7 +24,7 @@ export const postConnection = async (
       {
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
       }
     );
     return response;
