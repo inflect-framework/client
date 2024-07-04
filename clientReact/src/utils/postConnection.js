@@ -14,12 +14,11 @@ export const postConnection = async (
   try {
     const response = await axios.post(
       'http://localhost:3000/create_transformation',
+      body,
       {
-        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
+        }
       }
     );
     return response;
