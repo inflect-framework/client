@@ -1,7 +1,11 @@
 import React from 'react';
 
-const Sidebar = ({ setMainContent }) => {
-  const handleClick = (content) => () => {
+interface SidebarProps {
+  setMainContent: (content: string) => void;
+}
+
+const Sidebar = ({ setMainContent }: SidebarProps) => {
+  const handleClick = (content: string) => () => {
     setMainContent(content);
   };
 

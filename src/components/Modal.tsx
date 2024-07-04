@@ -1,6 +1,10 @@
-import React from 'react';
+interface ModalProps {
+  show: boolean;
+  onClose: () => void;
+  connection: [string, string, string, boolean, number];
+}
 
-const Modal = ({ show, onClose, connection }) => {
+const Modal = ({ show, onClose, connection }: ModalProps) => {
   return (
     <div className={`modal ${show ? 'show' : ''}`}>
       <div className='modal-content'>

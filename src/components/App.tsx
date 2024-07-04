@@ -1,32 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import '../App.css';
 import { getConnections } from '../utils/getEntities';
 import { putConnection } from '../utils/putConnections';
 import Modal from './Modal';
 import Sidebar from './Sidebar';
 import AddConnection from './AddConnection';
+import { Connection } from '../types/connection';
 
 function App() {
-  const [connections, setConnections] = useState([]);
+  const [connections, setConnections] = useState<Connection[]>([]);
   const [modalDisplayed, setModalDisplayed] = useState(false);
-  const [selectedConnection, setSelectedConnection] = useState(null);
+  const [selectedConnection, setSelectedConnection] = useState<
+    [string, string, string, boolean, number] | null
+  >(null);
   const [connectionAlterations, setConnectionAlterations] = useState(0);
   const [mainContent, setMainContent] = useState('connections');
 
   useEffect(() => {
     getConnections()
-      .then((rows) => {
+      .then((rows: Connection[]) => {
         setConnections(rows);
       })
       .catch(console.error);
   }, [connectionAlterations]);
 
-  const toggleModal = (connection) => {
-    setSelectedConnection(Object.values(connection));
+  // id: number;
+  // sourceTopic: string;
+  // targetTopic: string;
+  // transformation: string;
+  // connectionActiveState: boolean;
+
+  const toggleModal = (connection: Connection) => {
+    setSelectedConnection(
+      Object.values(connection) as [string, string, string, boolean, number]
+    );
     setModalDisplayed((prev) => !prev);
   };
 
-  function pauseConnection(connectionId, activeState) {
+  function pauseConnection(connectionId: number, activeState: boolean) {
     const request = async () => {
       const result = await putConnection(connectionId, !activeState);
       setConnectionAlterations((prev) => prev + 1);
@@ -36,10 +47,12 @@ function App() {
     request();
   }
 
-  function showConfirmPause(connectionId, activeState) {
+  function showConfirmPause(connectionId: number, activeState: boolean) {
     if (
       window.confirm(
-        `Are you sure you want to pause connection ${connectionId}?`
+        `Are you sure you want to ${
+          activeState ? 'pause' : 'restart'
+        } connection ${connectionId}?`
       )
     ) {
       pauseConnection(connectionId, activeState);
@@ -63,8 +76,8 @@ function App() {
               </tr>
             </thead>
             <tbody>
-              {connections.map((connection) => (
-                <tr id={connection.id} key={connection.source_topic}>
+              {connections.map((connection: Connection) => (
+                <tr id={connection.id.toString()} key={connection.source_topic}>
                   <td>
                     <a onClick={() => toggleModal(connection)}>
                       {connection.source_topic}
@@ -86,7 +99,11 @@ function App() {
                         showConfirmPause(connection.id, connection.active_state)
                       }
                     >
-                      <img src='../pause.png' alt='Pause' />
+                      {connection.active_state ? (
+                        <img src='../icons/pause.svg' alt='Pause' />
+                      ) : (
+                        <img src='../icons/play.svg' alt='Play' />
+                      )}
                     </a>
                   </td>
                   {/* <td>
@@ -104,7 +121,9 @@ function App() {
       <Modal
         show={modalDisplayed}
         onClose={() => setModalDisplayed(false)}
-        connection={selectedConnection}
+        connection={
+          selectedConnection as [string, string, string, boolean, number]
+        }
       ></Modal>
     </>
   );
