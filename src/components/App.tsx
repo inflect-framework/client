@@ -1,13 +1,106 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  CssBaseline,
+  Drawer,
+  Box,
+  AppBar,
+  Toolbar,
+  List,
+  Typography,
+  Divider,
+  IconButton,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TablePagination,
+  Switch,
+  FormControlLabel,
+} from '@mui/material';
+import {
+  Menu as MenuIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  Brightness4 as Brightness4Icon,
+  Brightness7 as Brightness7Icon,
+} from '@mui/icons-material';
+import { styled, ThemeProvider, createTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { lightTheme, darkTheme } from './theme';
 import '../App.css';
 import { getConnections } from '../utils/getEntities';
 import { putConnection } from '../utils/putConnections';
-import Modal from './Modal';
-import Sidebar from './Sidebar';
+import TabbedModal from './TabbedModal';
 import AddConnection from './AddConnection';
 import { Connection } from '../types/connection';
 
+const drawerWidth = 240;
+
+const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
+  open?: boolean;
+}>(({ theme, open }) => ({
+  flexGrow: 1,
+  padding: theme.spacing(3),
+  transition: theme.transitions.create('margin', {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  marginLeft: `-${drawerWidth}px`,
+  ...(open && {
+    transition: theme.transitions.create('margin', {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    marginLeft: 0,
+  }),
+  backgroundColor: theme.palette.background.default,
+}));
+
+const AppBarStyled = styled(AppBar, {
+  shouldForwardProp: (prop) => prop !== 'open',
+})<{ open?: boolean }>(({ theme, open }) => ({
+  transition: theme.transitions.create(['margin', 'width'], {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  ...(open && {
+    width: `calc(100% - ${drawerWidth}px)`,
+    marginLeft: `${drawerWidth}px`,
+    transition: theme.transitions.create(['margin', 'width'], {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  }),
+}));
+
+const DrawerHeader = styled('div')(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  padding: theme.spacing(0, 1),
+  ...theme.mixins.toolbar,
+  justifyContent: 'flex-end',
+  backgroundColor: theme.palette.background.paper,
+}));
+
 function App() {
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+  const [darkMode, setDarkMode] = useState(prefersDarkMode);
+  const theme = React.useMemo(
+    () => createTheme(darkMode ? darkTheme : lightTheme),
+    [darkMode]
+  );
+
+  useEffect(() => {
+    setDarkMode(prefersDarkMode);
+  }, [prefersDarkMode]);
+
+  const [open, setOpen] = useState(true);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [modalDisplayed, setModalDisplayed] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<
@@ -15,6 +108,8 @@ function App() {
   >(null);
   const [connectionAlterations, setConnectionAlterations] = useState(0);
   const [mainContent, setMainContent] = useState('connections');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
     getConnections()
@@ -24,12 +119,6 @@ function App() {
       .catch(console.error);
   }, [connectionAlterations]);
 
-  // id: number;
-  // sourceTopic: string;
-  // targetTopic: string;
-  // transformation: string;
-  // connectionActiveState: boolean;
-
   const toggleModal = (connection: Connection) => {
     setSelectedConnection(
       Object.values(connection) as [string, string, string, boolean, number]
@@ -37,7 +126,26 @@ function App() {
     setModalDisplayed((prev) => !prev);
   };
 
-  function pauseConnection(connectionId: number, activeState: boolean) {
+  const handleDrawerOpen = () => {
+    setOpen(true);
+  };
+
+  const handleDrawerClose = () => {
+    setOpen(false);
+  };
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const pauseConnection = (connectionId: number, activeState: boolean) => {
     const request = async () => {
       const result = await putConnection(connectionId, !activeState);
       setConnectionAlterations((prev) => prev + 1);
@@ -45,9 +153,9 @@ function App() {
     };
 
     request();
-  }
+  };
 
-  function showConfirmPause(connectionId: number, activeState: boolean) {
+  const showConfirmPause = (connectionId: number, activeState: boolean) => {
     if (
       window.confirm(
         `Are you sure you want to ${
@@ -57,75 +165,181 @@ function App() {
     ) {
       pauseConnection(connectionId, activeState);
     }
-  }
+  };
+
+  const handleThemeChange = () => {
+    setDarkMode(!darkMode);
+  };
+
+  const handleAddConnection = () => {
+    setModalDisplayed(true);
+    setSelectedConnection(null); // No connection selected, indicating adding a new one
+  };
 
   return (
-    <>
-      <Sidebar setMainContent={setMainContent} />
-      {mainContent === 'connections' ? (
-        <div className='connections-table'>
-          <h1>Connections</h1>
-          <table>
-            <thead>
-              <tr>
-                <th>Source Topic</th>
-                <th>Target Topic</th>
-                <th>Transformation Name</th>
-                <th>Pause</th>
-                {/* <th>Delete</th> */}
-              </tr>
-            </thead>
-            <tbody>
-              {connections.map((connection: Connection) => (
-                <tr id={connection.id.toString()} key={connection.source_topic}>
-                  <td>
-                    <a onClick={() => toggleModal(connection)}>
-                      {connection.source_topic}
-                    </a>
-                  </td>
-                  <td>
-                    <a onClick={() => toggleModal(connection)}>
-                      {connection.target_topic}
-                    </a>
-                  </td>
-                  <td>
-                    <a onClick={() => toggleModal(connection)}>
-                      {connection.transformation_name}
-                    </a>
-                  </td>
-                  <td>
-                    <a
-                      onClick={() =>
-                        showConfirmPause(connection.id, connection.active_state)
-                      }
-                    >
-                      {connection.active_state ? (
-                        <img src='../icons/pause.svg' alt='Pause' />
-                      ) : (
-                        <img src='../icons/play.svg' alt='Play' />
-                      )}
-                    </a>
-                  </td>
-                  {/* <td>
-                  <img src='../public/bin.png' alt='Delete' />
-                </td> */}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <AddConnection connections={connections} />
-      )}
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ display: 'flex' }}>
+        <AppBarStyled position='fixed' open={open}>
+          <Toolbar>
+            <IconButton
+              color='inherit'
+              aria-label='open drawer'
+              onClick={handleDrawerOpen}
+              edge='start'
+              sx={{ mr: 2, ...(open && { display: 'none' }) }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Typography variant='h6' noWrap component='div'>
+              Connections
+            </Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={darkMode}
+                  onChange={handleThemeChange}
+                  name='themeSwitch'
+                  color='default'
+                />
+              }
+              label={darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+              sx={{ marginLeft: 'auto' }}
+            />
+          </Toolbar>
+        </AppBarStyled>
+        <Drawer
+          sx={{
+            width: drawerWidth,
+            flexShrink: 0,
+            '& .MuiDrawer-paper': {
+              width: drawerWidth,
+              boxSizing: 'border-box',
+              backgroundColor: theme.palette.background.paper,
+            },
+          }}
+          variant='persistent'
+          anchor='left'
+          open={open}
+        >
+          <DrawerHeader>
+            <IconButton onClick={handleDrawerClose}>
+              {theme.direction === 'ltr' ? (
+                <ChevronLeftIcon />
+              ) : (
+                <ChevronRightIcon />
+              )}
+            </IconButton>
+          </DrawerHeader>
+          <Divider />
+          <List>
+            {['Connections', 'Add Connection'].map((text, index) => (
+              <ListItem
+                key={text}
+                component='button'
+                onClick={
+                  text === 'Add Connection'
+                    ? handleAddConnection
+                    : () => setMainContent(text.toLowerCase().replace(' ', ''))
+                }
+                sx={{
+                  textAlign: 'left',
+                  width: '100%',
+                  background: 'none',
+                  border: 'none',
+                  padding: 1,
+                  margin: 2,
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                  },
+                }}
+              >
+                <ListItemText primary={text} />
+              </ListItem>
+            ))}
+          </List>
+        </Drawer>
 
-      <Modal
-        show={modalDisplayed}
-        onClose={() => setModalDisplayed(false)}
-        connection={
-          selectedConnection as [string, string, string, boolean, number]
-        }
-      ></Modal>
-    </>
+        <Main open={open}>
+          <DrawerHeader />
+          {mainContent === 'connections' ? (
+            <TableContainer
+              component={Paper}
+              sx={{ backgroundColor: theme.palette.background.paper }}
+            >
+              <Table aria-label='connections table'>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Source Topic</TableCell>
+                    <TableCell>Target Topic</TableCell>
+                    <TableCell>Transformation Name</TableCell>
+                    <TableCell>Pause</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {connections
+                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    .map((connection: Connection) => (
+                      <TableRow key={connection.id}>
+                        <TableCell>
+                          <a onClick={() => toggleModal(connection)}>
+                            {connection.source_topic}
+                          </a>
+                        </TableCell>
+                        <TableCell>
+                          <a onClick={() => toggleModal(connection)}>
+                            {connection.target_topic}
+                          </a>
+                        </TableCell>
+                        <TableCell>
+                          <a onClick={() => toggleModal(connection)}>
+                            {connection.transformation_name}
+                          </a>
+                        </TableCell>
+                        <TableCell>
+                          <a
+                            onClick={() =>
+                              showConfirmPause(
+                                connection.id,
+                                connection.active_state
+                              )
+                            }
+                          >
+                            {connection.active_state ? (
+                              <img src='../icons/pause.svg' alt='Pause' />
+                            ) : (
+                              <img src='../icons/play.svg' alt='Play' />
+                            )}
+                          </a>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25]}
+                component='div'
+                count={connections.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                sx={{ backgroundColor: theme.palette.background.paper }}
+              />
+            </TableContainer>
+          ) : (
+            <AddConnection connections={connections} />
+          )}
+        </Main>
+
+        <TabbedModal
+          open={modalDisplayed}
+          onClose={() => setModalDisplayed(false)}
+          connection={selectedConnection}
+        />
+      </Box>
+    </ThemeProvider>
   );
 }
 
