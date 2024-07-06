@@ -10,6 +10,7 @@ import {
   TextField,
   Divider,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -21,11 +22,11 @@ import {
   Draggable,
   DropResult,
 } from "react-beautiful-dnd";
-import Select from "react-select";
+import Select, { StylesConfig } from "react-select";
 
 const initialTransformations = [
-  { id: "transformation-1", label: "Transformation", value: "transformation1" },
-  { id: "filter-1", label: "Filter", value: "filter1" },
+  { id: "transformation-1", type: "transformation", value: "transformation1" },
+  { id: "filter-1", type: "filter", value: "filter1" },
 ];
 
 const options = [
@@ -36,6 +37,45 @@ const options = [
   { value: "filter1", label: "Filter 1" },
   { value: "filter2", label: "Filter 2" },
 ];
+
+const getCustomStyles = (mode: "light" | "dark"): StylesConfig => ({
+  control: (provided) => ({
+    ...provided,
+    backgroundColor: mode === "dark" ? "#1d1d1d" : "#ffffff",
+    color: mode === "dark" ? "#ffffff" : "#000000",
+  }),
+  menu: (provided) => ({
+    ...provided,
+    backgroundColor: mode === "dark" ? "#1d1d1d" : "#ffffff",
+    color: mode === "dark" ? "#ffffff" : "#000000",
+  }),
+  singleValue: (provided) => ({
+    ...provided,
+    color: mode === "dark" ? "#ffffff" : "#000000",
+  }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: state.isSelected
+      ? mode === "dark"
+        ? "#90caf9"
+        : "#f0f0f0"
+      : mode === "dark"
+      ? "#1d1d1d"
+      : "#ffffff",
+    color: mode === "dark" ? "#ffffff" : "#000000",
+    "&:hover": {
+      backgroundColor: mode === "dark" ? "#333333" : "#f0f0f0",
+    },
+  }),
+  input: (provided) => ({
+    ...provided,
+    color: mode === "dark" ? "#ffffff" : "#000000",
+  }),
+  placeholder: (provided) => ({
+    ...provided,
+    color: mode === "dark" ? "#ffffff" : "#000000",
+  }),
+});
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -73,6 +113,9 @@ interface TabbedModalProps {
 }
 
 const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
+  const theme = useTheme();
+  const mode = theme.palette.mode;
+
   const [tabValue, setTabValue] = useState(0);
   const [testEvent, setTestEvent] = useState("");
   const [testResult, setTestResult] = useState("");
@@ -104,10 +147,6 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
     onClose();
   };
 
-  const handleBackdropClick = (event: React.SyntheticEvent) => {
-    event.stopPropagation();
-  };
-
   const handleDragEnd = (result: DropResult) => {
     console.log("Drag End:", result); // Debug log
     if (!result.destination) return;
@@ -118,23 +157,19 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
     console.log("Updated Processes:", items); // Debug log
   };
 
-  const handleAddTransformation = (type: string) => {
+  const handleAddItem = (type: string) => {
     setProcesses([
       ...processes,
       {
         id: `${type}-${processes.length + 1}`,
-        label: type.charAt(0).toUpperCase() + type.slice(1),
+        type: type,
         value: `${type}${processes.length + 1}`,
       },
     ]);
   };
 
-  const handleDeleteTransformation = (id: string) => {
-    if (
-      processes.filter((item) => item.label === id.split("-")[0]).length > 1
-    ) {
-      setProcesses(processes.filter((item) => item.id !== id));
-    }
+  const handleDeleteItem = (id: string) => {
+    setProcesses(processes.filter((item) => item.id !== id));
   };
 
   return (
@@ -143,11 +178,6 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
       onClose={handleClose}
       aria-labelledby="modal-title"
       aria-describedby="modal-description"
-      slotProps={{
-        backdrop: {
-          onClick: handleBackdropClick,
-        },
-      }}
     >
       <Box
         sx={{
@@ -162,6 +192,8 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
           boxShadow: 24,
           p: 4,
           minHeight: 650,
+          maxHeight: "90vh", // Ensure the modal does not grow beyond the viewport height
+          overflow: "auto", // Allow the content to scroll
         }}
       >
         <IconButton
@@ -196,20 +228,26 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
               <Select
                 options={options}
                 isClearable
-                styles={{
-                  container: (base) => ({ ...base, flex: 1, width: "100%" }),
-                }}
+                styles={getCustomStyles(mode)}
               />
             </Box>
-            <Box>
-              <Typography>Outgoing Schema</Typography>
-              <Select
-                options={options}
-                isClearable
-                styles={{
-                  container: (base) => ({ ...base, flex: 1, width: "100%" }),
-                }}
-              />
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography>Outgoing Schema</Typography>
+                <Select
+                  options={options}
+                  isClearable
+                  styles={getCustomStyles(mode)}
+                />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography>Topic On Fail</Typography>
+                <Select
+                  options={options}
+                  isClearable
+                  styles={getCustomStyles(mode)}
+                />
+              </Box>
             </Box>
             <Divider sx={{ my: 2 }} />
             <DragDropContext onDragEnd={handleDragEnd}>
@@ -235,33 +273,58 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                               display: "flex",
                               alignItems: "center",
                               gap: 2,
+                              minWidth: 0, // Prevent teleportation
                             }}
                           >
-                            <Select
-                              options={options}
-                              isClearable
-                              styles={{
-                                container: (base) => ({ ...base, flex: 1 }),
-                              }}
-                              defaultValue={options.find(
-                                (option) => option.value === item.value
-                              )}
-                            />
+                            {item.type === "filter" ? (
+                              <>
+                                <Box sx={{ flex: 1 }}>
+                                  <Typography>Filter</Typography>
+                                  <Select
+                                    options={options}
+                                    isClearable
+                                    styles={getCustomStyles(mode)}
+                                    defaultValue={options.find(
+                                      (option) => option.value === item.value
+                                    )}
+                                  />
+                                </Box>
+                                <Box sx={{ flex: 1 }}>
+                                  <Typography>On Fail Topic</Typography>
+                                  <Select
+                                    options={options}
+                                    isClearable
+                                    styles={getCustomStyles(mode)}
+                                  />
+                                </Box>
+                              </>
+                            ) : (
+                              <Box sx={{ flex: 1 }}>
+                                <Typography>Transformation</Typography>
+                                <Select
+                                  options={options}
+                                  isClearable
+                                  styles={getCustomStyles(mode)}
+                                  defaultValue={options.find(
+                                    (option) => option.value === item.value
+                                  )}
+                                />
+                              </Box>
+                            )}
                             <IconButton
-                              onClick={() =>
-                                handleAddTransformation(item.label)
-                              }
+                              onClick={() => handleAddItem(item.type)}
                             >
                               <AddIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() =>
-                                handleDeleteTransformation(item.id)
-                              }
+                              onClick={() => handleDeleteItem(item.id)}
                             >
                               <DeleteIcon />
                             </IconButton>
-                            <IconButton {...provided.dragHandleProps}>
+                            <IconButton
+                              sx={{ cursor: "grab" }} // Ensure cursor change on drag
+                              {...provided.dragHandleProps}
+                            >
                               <DragIndicatorIcon />
                             </IconButton>
                           </Box>
@@ -273,11 +336,28 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                 )}
               </Droppable>
             </DragDropContext>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <Button
+                onClick={() => handleAddItem("transformation")}
+                variant="contained"
+                startIcon={<AddIcon />}
+                sx={{ width: "fit-content", alignSelf: "flex-start" }}
+              >
+                Add Transformation
+              </Button>
+              <Button
+                onClick={() => handleAddItem("filter")}
+                variant="contained"
+                startIcon={<AddIcon />}
+                sx={{ width: "fit-content", alignSelf: "flex-start" }}
+              >
+                Add Filter
+              </Button>
+            </Box>
             <Button
-              onClick={() => handleAddTransformation("transformation")}
+              onClick={() => console.log("Create Pipeline")}
               variant="contained"
-              startIcon={<AddIcon />}
-              sx={{ width: "fit-content", alignSelf: "flex-start" }}
+              sx={{ width: "fit-content", alignSelf: "flex-start", mt: 2 }}
             >
               Create Pipeline
             </Button>
