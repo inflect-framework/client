@@ -29,20 +29,13 @@ import {
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
 } from "@mui/icons-material";
-import {
-  styled,
-  ThemeProvider,
-  createTheme,
-  useTheme,
-} from "@mui/material/styles";
+import { styled, ThemeProvider, createTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { lightTheme, darkTheme } from "./theme";
-import "../App.css";
 import { getConnections } from "../utils/getEntities";
 import { putConnection } from "../utils/putConnections";
 import TabbedModal from "./TabbedModal";
 import AddConnection from "./AddConnection";
-import ThemedButton from "./ThemedButton";
 import { Connection } from "../types/connection";
 
 const drawerWidth = 240;
@@ -145,14 +138,6 @@ function App() {
     setModalDisplayed((prev) => !prev);
   };
 
-  const handleDrawerOpen = () => {
-    setOpen(true);
-  };
-
-  const handleDrawerClose = () => {
-    setOpen(false);
-  };
-
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
   };
@@ -204,7 +189,7 @@ function App() {
             <IconButton
               color="inherit"
               aria-label="open drawer"
-              onClick={handleDrawerOpen}
+              onClick={() => setOpen(!open)}
               edge="start"
               sx={{ mr: 2, ...(open && { display: "none" }) }}
             >
@@ -242,7 +227,7 @@ function App() {
           open={open}
         >
           <DrawerHeader>
-            <IconButton onClick={handleDrawerClose}>
+            <IconButton onClick={() => setOpen(false)}>
               {theme.direction === "ltr" ? (
                 <ChevronLeftIcon />
               ) : (

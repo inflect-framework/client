@@ -15,8 +15,12 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import Editor from "@monaco-editor/react";
-import PropTypes from "prop-types";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "react-beautiful-dnd";
 import Select from "react-select";
 
 const initialTransformations = [
@@ -55,12 +59,6 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-TabPanel.propTypes = {
-  children: PropTypes.node,
-  index: PropTypes.number.isRequired,
-  value: PropTypes.number.isRequired,
-};
-
 function a11yProps(index: number) {
   return {
     id: `tab-${index}`,
@@ -74,17 +72,11 @@ interface TabbedModalProps {
   connection: [string, string, string, boolean, number] | null;
 }
 
-const TabbedModal: React.FC<TabbedModalProps> = ({
-  open,
-  onClose,
-  connection,
-}) => {
+const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
   const [tabValue, setTabValue] = useState(0);
   const [testEvent, setTestEvent] = useState("");
   const [testResult, setTestResult] = useState("");
-  const [transformations, setTransformations] = useState(
-    initialTransformations
-  );
+  const [processes, setProcesses] = useState(initialTransformations);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -116,30 +108,32 @@ const TabbedModal: React.FC<TabbedModalProps> = ({
     event.stopPropagation();
   };
 
-  const handleDragEnd = (result) => {
+  const handleDragEnd = (result: DropResult) => {
+    console.log("Drag End:", result); // Debug log
     if (!result.destination) return;
-    const items = Array.from(transformations);
+    const items = Array.from(processes);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
-    setTransformations(items);
+    setProcesses(items);
+    console.log("Updated Processes:", items); // Debug log
   };
 
-  const handleAddTransformation = (type) => {
-    setTransformations([
-      ...transformations,
+  const handleAddTransformation = (type: string) => {
+    setProcesses([
+      ...processes,
       {
-        id: `${type}-${transformations.length + 1}`,
+        id: `${type}-${processes.length + 1}`,
         label: type.charAt(0).toUpperCase() + type.slice(1),
+        value: `${type}${processes.length + 1}`,
       },
     ]);
   };
 
-  const handleDeleteTransformation = (id) => {
+  const handleDeleteTransformation = (id: string) => {
     if (
-      transformations.filter((item) => item.label === id.split("-")[0]).length >
-      1
+      processes.filter((item) => item.label === id.split("-")[0]).length > 1
     ) {
-      setTransformations(transformations.filter((item) => item.id !== id));
+      setProcesses(processes.filter((item) => item.id !== id));
     }
   };
 
@@ -219,14 +213,14 @@ const TabbedModal: React.FC<TabbedModalProps> = ({
             </Box>
             <Divider sx={{ my: 2 }} />
             <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="transformations">
+              <Droppable droppableId="new-pipeline-processes">
                 {(provided) => (
                   <Box
                     {...provided.droppableProps}
                     ref={provided.innerRef}
                     sx={{ display: "flex", flexDirection: "column", gap: 2 }}
                   >
-                    {transformations.map((item, index) => (
+                    {processes.map((item, index) => (
                       <Draggable
                         key={item.id}
                         draggableId={item.id}
@@ -236,6 +230,7 @@ const TabbedModal: React.FC<TabbedModalProps> = ({
                           <Box
                             ref={provided.innerRef}
                             {...provided.draggableProps}
+                            {...provided.dragHandleProps} // Ensure drag handle props are here
                             sx={{
                               display: "flex",
                               alignItems: "center",
