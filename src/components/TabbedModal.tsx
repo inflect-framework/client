@@ -32,8 +32,14 @@ import { getCustomStyles } from "../utils/getCustomStyles";
 import { SelectedOption } from "../types/SelectedOption";
 
 const initialTransformations = [
-  { id: "transformation-1", type: "transformation", value: "transformation1" },
-  { id: "filter-1", type: "filter", value: "filter1" },
+  { id: "1", type: "transformation", value: "capitalize" },
+  { id: "2", type: "filter", value: "isString" },
+  { id: "3", type: "transformation", value: "toUUID" },
+  { id: "4", type: "filter", value: "isBool" },
+  { id: "5", type: "transformation", value: "toNumber" },
+  { id: "6", type: "filter", value: "isNumber" },
+  { id: "7", type: "transformation", value: "toBool" },
+  { id: "8", type: "filter", value: "isUUID" },
 ];
 
 const options = [
@@ -80,7 +86,7 @@ interface TabbedModalProps {
   connection: [string, string, string, boolean, number] | null;
 }
 
-const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
+const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
   const theme = useTheme();
   const mode = theme.palette.mode;
 
@@ -230,7 +236,7 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
             bgcolor: "background.paper",
             boxShadow: 24,
             p: 4,
-            minHeight: 650,
+            minHeight: 700,
             maxHeight: "90vh", // Ensure the modal does not grow beyond the viewport height
             overflow: "auto", // Allow the content to scroll
           }}
@@ -319,7 +325,7 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                     key={item.id}
                     sx={{
                       display: "flex",
-                      alignItems: "center",
+                      alignItems: "flex-end",
                       gap: 2,
                     }}
                   >
@@ -371,6 +377,7 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <IconButton
                         onClick={() => handleAddItem(item.type, index)}
+                        sx={{ alignSelf: "flex-end" }}
                       >
                         <AddIcon />
                       </IconButton>
@@ -410,6 +417,7 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
               <Button
                 onClick={handleCreatePipeline}
                 variant="contained"
+                color="secondary"
                 sx={{ width: "fit-content", alignSelf: "flex-start", mt: 2 }}
               >
                 Create Pipeline
@@ -435,7 +443,7 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                   Test
                 </Button>
               </Box>
-              <Box sx={{ display: "flex", gap: 2, height: "400px" }}>
+              <Box sx={{ display: "flex", gap: 2, height: "450px" }}>
                 <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
                   <Typography variant="subtitle1">
                     Generated Editable Test Event:
