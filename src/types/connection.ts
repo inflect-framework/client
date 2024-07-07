@@ -5,3 +5,5 @@ export interface Connection {
   transformation_name: string;
   active_state: boolean;
 }
+
+export type ConnectionTuple = [string, string, string, boolean, number];

@@ -9,20 +9,27 @@ import {
   Button,
   TextField,
   Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import Editor from "@monaco-editor/react";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from "react-beautiful-dnd";
-import Select, { StylesConfig } from "react-select";
+import Select, {
+  StylesConfig,
+  SingleValue,
+  MultiValue,
+  ActionMeta,
+} from "react-select";
+import { getCustomStyles } from "../utils/getCustomStyles";
+import { SelectedOption } from "../types/SelectedOption";
 
 const initialTransformations = [
   { id: "transformation-1", type: "transformation", value: "transformation1" },
@@ -37,45 +44,6 @@ const options = [
   { value: "filter1", label: "Filter 1" },
   { value: "filter2", label: "Filter 2" },
 ];
-
-const getCustomStyles = (mode: "light" | "dark"): StylesConfig => ({
-  control: (provided) => ({
-    ...provided,
-    backgroundColor: mode === "dark" ? "#1d1d1d" : "#ffffff",
-    color: mode === "dark" ? "#ffffff" : "#000000",
-  }),
-  menu: (provided) => ({
-    ...provided,
-    backgroundColor: mode === "dark" ? "#1d1d1d" : "#ffffff",
-    color: mode === "dark" ? "#ffffff" : "#000000",
-  }),
-  singleValue: (provided) => ({
-    ...provided,
-    color: mode === "dark" ? "#ffffff" : "#000000",
-  }),
-  option: (provided, state) => ({
-    ...provided,
-    backgroundColor: state.isSelected
-      ? mode === "dark"
-        ? "#90caf9"
-        : "#f0f0f0"
-      : mode === "dark"
-      ? "#1d1d1d"
-      : "#ffffff",
-    color: mode === "dark" ? "#ffffff" : "#000000",
-    "&:hover": {
-      backgroundColor: mode === "dark" ? "#333333" : "#f0f0f0",
-    },
-  }),
-  input: (provided) => ({
-    ...provided,
-    color: mode === "dark" ? "#ffffff" : "#000000",
-  }),
-  placeholder: (provided) => ({
-    ...provided,
-    color: mode === "dark" ? "#ffffff" : "#000000",
-  }),
-});
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -117,9 +85,14 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
   const mode = theme.palette.mode;
 
   const [tabValue, setTabValue] = useState(0);
+  const [incomingSchema, setIncomingSchema] = useState<string | null>(null);
+  const [outgoingSchema, setOutgoingSchema] = useState<string | null>(null);
+  const [redirectTopic, setRedirectTopic] = useState<string | null>(null);
   const [testEvent, setTestEvent] = useState("");
   const [testResult, setTestResult] = useState("");
   const [processes, setProcesses] = useState(initialTransformations);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -147,302 +120,424 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
     onClose();
   };
 
-  const handleDragEnd = (result: DropResult) => {
-    console.log("Drag End:", result); // Debug log
-    if (!result.destination) return;
-    const items = Array.from(processes);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    setProcesses(items);
-    console.log("Updated Processes:", items); // Debug log
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return;
+    const newProcesses = [...processes];
+    const temp = newProcesses[index - 1];
+    newProcesses[index - 1] = newProcesses[index];
+    newProcesses[index] = temp;
+    setProcesses(newProcesses);
   };
 
-  const handleAddItem = (type: string) => {
-    setProcesses([
-      ...processes,
-      {
-        id: `${type}-${processes.length + 1}`,
-        type: type,
-        value: `${type}${processes.length + 1}`,
-      },
-    ]);
+  const handleMoveDown = (index: number) => {
+    if (index === processes.length - 1) return;
+    const newProcesses = [...processes];
+    const temp = newProcesses[index + 1];
+    newProcesses[index + 1] = newProcesses[index];
+    newProcesses[index] = temp;
+    setProcesses(newProcesses);
+  };
+
+  const handleAddItem = (type: string, index: number) => {
+    const newProcesses = [...processes];
+    newProcesses.splice(index + 1, 0, {
+      id: `${type}-${newProcesses.length + 1}`,
+      type: type,
+      value: `${type}${newProcesses.length + 1}`,
+    });
+    setProcesses(newProcesses);
   };
 
   const handleDeleteItem = (id: string) => {
     setProcesses(processes.filter((item) => item.id !== id));
   };
 
+  const handleCreatePipeline = () => {
+    if (
+      !outgoingSchema &&
+      processes.some(
+        (item) => item.type === "filter" || item.type === "transformation"
+      )
+    ) {
+      setWarningDialogOpen(true);
+    } else if (
+      (outgoingSchema || processes.some((item) => item.type === "filter")) &&
+      !redirectTopic
+    ) {
+      alert(
+        "Please select a redirect topic for the outgoing schema or filters."
+      );
+      return;
+    } else {
+      const pipeline = {
+        incomingSchema,
+        outgoingSchema: { value: outgoingSchema, redirectTopic },
+        processes: processes.map((process) => ({
+          type: process.type,
+          value: process.value,
+          redirectTopic: process.type === "filter" ? redirectTopic : undefined,
+        })),
+      };
+
+      console.log(pipeline);
+      setTabValue(1);
+    }
+  };
+
+  const handleConfirmPipelineCreation = () => {
+    setConfirmDialogOpen(false);
+
+    const pipeline = {
+      incomingSchema,
+      outgoingSchema: { value: outgoingSchema, redirectTopic },
+      processes: processes.map((process) => ({
+        type: process.type,
+        value: process.value,
+        redirectTopic: process.type === "filter" ? redirectTopic : undefined,
+      })),
+    };
+
+    console.log(pipeline);
+    setTabValue(1);
+  };
+
+  const resetDialogs = () => {
+    setWarningDialogOpen(false);
+    setConfirmDialogOpen(false);
+  };
+
   return (
-    <Modal
-      open={open}
-      onClose={handleClose}
-      aria-labelledby="modal-title"
-      aria-describedby="modal-description"
-    >
-      <Box
-        sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "80%",
-          minWidth: 900,
-          maxWidth: "90%",
-          bgcolor: "background.paper",
-          boxShadow: 24,
-          p: 4,
-          minHeight: 650,
-          maxHeight: "90vh", // Ensure the modal does not grow beyond the viewport height
-          overflow: "auto", // Allow the content to scroll
+    <>
+      <Modal
+        open={open}
+        onClose={(_, reason) => {
+          if (reason !== "backdropClick") {
+            handleClose();
+          }
         }}
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
       >
-        <IconButton
-          aria-label="close"
-          onClick={handleClose}
+        <Box
           sx={{
             position: "absolute",
-            right: 8,
-            top: 8,
-            color: (theme) => theme.palette.grey[500],
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "80%",
+            minWidth: 900,
+            maxWidth: "90%",
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            minHeight: 650,
+            maxHeight: "90vh", // Ensure the modal does not grow beyond the viewport height
+            overflow: "auto", // Allow the content to scroll
           }}
         >
-          <CloseIcon />
-        </IconButton>
-        <Typography id="modal-title" variant="h6" component="h2">
-          Edit Connection
-        </Typography>
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          aria-label="connection tabs"
-        >
-          <Tab label="Design" {...a11yProps(0)} />
-          <Tab label="Test" {...a11yProps(1)} />
-          <Tab label="Finalize" {...a11yProps(2)} />
-          <Tab label="Versioning and Evolution" {...a11yProps(3)} />
-        </Tabs>
-        <TabPanel value={tabValue} index={0}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Box>
-              <Typography>Incoming Schema</Typography>
-              <Select
-                options={options}
-                isClearable
-                styles={getCustomStyles(mode)}
-              />
-            </Box>
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <Box sx={{ flex: 1 }}>
-                <Typography>Outgoing Schema</Typography>
+          <IconButton
+            aria-label="close"
+            onClick={handleClose}
+            sx={{
+              position: "absolute",
+              right: 8,
+              top: 8,
+              color: (theme) => theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          <Typography id="modal-title" variant="h6" component="h2">
+            Edit Connection
+          </Typography>
+          <Tabs
+            value={tabValue}
+            onChange={(event, newValue) => {
+              resetDialogs();
+              handleTabChange(event, newValue);
+            }}
+            aria-label="connection tabs"
+          >
+            <Tab label="Design" {...a11yProps(0)} />
+            <Tab label="Test" {...a11yProps(1)} />
+            <Tab label="Finalize" {...a11yProps(2)} />
+            <Tab label="Versioning and Evolution" {...a11yProps(3)} />
+          </Tabs>
+          <TabPanel value={tabValue} index={0}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box>
+                <Typography>Incoming Schema</Typography>
                 <Select
                   options={options}
                   isClearable
                   styles={getCustomStyles(mode)}
+                  onChange={(selectedOption) =>
+                    setIncomingSchema(
+                      selectedOption
+                        ? (selectedOption as SelectedOption).value
+                        : null
+                    )
+                  }
                 />
               </Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography>Topic On Fail</Typography>
-                <Select
-                  options={options}
-                  isClearable
-                  styles={getCustomStyles(mode)}
-                />
-              </Box>
-            </Box>
-            <Divider sx={{ my: 2 }} />
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="new-pipeline-processes">
-                {(provided) => (
-                  <Box
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-                  >
-                    {processes.map((item, index) => (
-                      <Draggable
-                        key={item.id}
-                        draggableId={item.id}
-                        index={index}
-                      >
-                        {(provided) => (
-                          <Box
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps} // Ensure drag handle props are here
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 2,
-                              minWidth: 0, // Prevent teleportation
-                            }}
-                          >
-                            {item.type === "filter" ? (
-                              <>
-                                <Box sx={{ flex: 1 }}>
-                                  <Typography>Filter</Typography>
-                                  <Select
-                                    options={options}
-                                    isClearable
-                                    styles={getCustomStyles(mode)}
-                                    defaultValue={options.find(
-                                      (option) => option.value === item.value
-                                    )}
-                                  />
-                                </Box>
-                                <Box sx={{ flex: 1 }}>
-                                  <Typography>On Fail Topic</Typography>
-                                  <Select
-                                    options={options}
-                                    isClearable
-                                    styles={getCustomStyles(mode)}
-                                  />
-                                </Box>
-                              </>
-                            ) : (
-                              <Box sx={{ flex: 1 }}>
-                                <Typography>Transformation</Typography>
-                                <Select
-                                  options={options}
-                                  isClearable
-                                  styles={getCustomStyles(mode)}
-                                  defaultValue={options.find(
-                                    (option) => option.value === item.value
-                                  )}
-                                />
-                              </Box>
-                            )}
-                            <IconButton
-                              onClick={() => handleAddItem(item.type)}
-                            >
-                              <AddIcon />
-                            </IconButton>
-                            <IconButton
-                              onClick={() => handleDeleteItem(item.id)}
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                            <IconButton
-                              sx={{ cursor: "grab" }} // Ensure cursor change on drag
-                              {...provided.dragHandleProps}
-                            >
-                              <DragIndicatorIcon />
-                            </IconButton>
-                          </Box>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </Box>
-                )}
-              </Droppable>
-            </DragDropContext>
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <Button
-                onClick={() => handleAddItem("transformation")}
-                variant="contained"
-                startIcon={<AddIcon />}
-                sx={{ width: "fit-content", alignSelf: "flex-start" }}
-              >
-                Add Transformation
-              </Button>
-              <Button
-                onClick={() => handleAddItem("filter")}
-                variant="contained"
-                startIcon={<AddIcon />}
-                sx={{ width: "fit-content", alignSelf: "flex-start" }}
-              >
-                Add Filter
-              </Button>
-            </Box>
-            <Button
-              onClick={() => console.log("Create Pipeline")}
-              variant="contained"
-              sx={{ width: "fit-content", alignSelf: "flex-start", mt: 2 }}
-            >
-              Create Pipeline
-            </Button>
-          </Box>
-        </TabPanel>
-        <TabPanel value={tabValue} index={1}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Box>
-              <Button
-                onClick={handleGenerateTestEvent}
-                variant="contained"
-                color="primary"
-                sx={{ mr: 2 }}
-              >
-                Generate Test Event
-              </Button>
-              <Button
-                onClick={handleTest}
-                variant="contained"
-                color="secondary"
-              >
-                Test
-              </Button>
-            </Box>
-            <Box sx={{ display: "flex", gap: 2, height: "400px" }}>
-              <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                <Typography variant="subtitle1">
-                  Generated Editable Test Event:
-                </Typography>
+              <Box sx={{ display: "flex", gap: 2 }}>
                 <Box sx={{ flex: 1 }}>
-                  <Editor
-                    height="100%"
-                    language="json"
-                    value={testEvent}
-                    onChange={(value) => setTestEvent(value || "")}
+                  <Typography>Outgoing Schema</Typography>
+                  <Select
+                    options={options}
+                    isClearable
+                    styles={getCustomStyles(mode)}
+                    onChange={(selectedOption) =>
+                      setOutgoingSchema(
+                        selectedOption
+                          ? (selectedOption as SelectedOption).value
+                          : null
+                      )
+                    }
+                  />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography>Topic On Fail</Typography>
+                  <Select
+                    options={options}
+                    isClearable
+                    styles={getCustomStyles(mode)}
+                    onChange={(selectedOption) =>
+                      setRedirectTopic(
+                        selectedOption
+                          ? (selectedOption as SelectedOption).value
+                          : null
+                      )
+                    }
                   />
                 </Box>
               </Box>
-              <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                <Typography variant="subtitle1">Result:</Typography>
-                <TextField
-                  multiline
-                  fullWidth
-                  rows={10}
-                  variant="outlined"
-                  value={testResult}
-                  InputProps={{
-                    readOnly: true,
-                    sx: { height: "100%" },
-                  }}
-                  sx={{ flex: 1 }}
-                />
+              <Divider sx={{ my: 2 }} />
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {processes.map((item, index) => (
+                  <Box
+                    key={item.id}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                    }}
+                  >
+                    {item.type === "filter" ? (
+                      <>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography>
+                            Filter{" "}
+                            {processes
+                              .filter((p) => p.type === "filter")
+                              .indexOf(item) + 1}
+                          </Typography>
+                          <Select
+                            options={options}
+                            isClearable
+                            styles={getCustomStyles(mode)}
+                            defaultValue={options.find(
+                              (option) => option.value === item.value
+                            )}
+                          />
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography>Topic On Fail</Typography>
+                          <Select
+                            options={options}
+                            isClearable
+                            styles={getCustomStyles(mode)}
+                          />
+                        </Box>
+                      </>
+                    ) : (
+                      <Box sx={{ flex: 1 }}>
+                        <Typography>
+                          Transformation{" "}
+                          {processes
+                            .filter((p) => p.type === "transformation")
+                            .indexOf(item) + 1}
+                        </Typography>
+                        <Select
+                          options={options}
+                          isClearable
+                          styles={getCustomStyles(mode)}
+                          defaultValue={options.find(
+                            (option) => option.value === item.value
+                          )}
+                        />
+                      </Box>
+                    )}
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <IconButton
+                        onClick={() => handleAddItem(item.type, index)}
+                      >
+                        <AddIcon />
+                      </IconButton>
+                      <IconButton onClick={() => handleDeleteItem(item.id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                      <IconButton onClick={() => handleMoveUp(index)}>
+                        <ArrowUpwardIcon />
+                      </IconButton>
+                      <IconButton onClick={() => handleMoveDown(index)}>
+                        <ArrowDownwardIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                ))}
               </Box>
-              <Box
-                sx={{
-                  width: "200px",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <Button
+                  onClick={() =>
+                    handleAddItem("transformation", processes.length - 1)
+                  }
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  sx={{ width: "fit-content", alignSelf: "flex-start" }}
+                >
+                  Add Transformation
+                </Button>
+                <Button
+                  onClick={() => handleAddItem("filter", processes.length - 1)}
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  sx={{ width: "fit-content", alignSelf: "flex-start" }}
+                >
+                  Add Filter
+                </Button>
+              </Box>
+              <Button
+                onClick={handleCreatePipeline}
+                variant="contained"
+                sx={{ width: "fit-content", alignSelf: "flex-start", mt: 2 }}
               >
-                <Typography variant="subtitle1">
-                  Transformations and Filters:
-                </Typography>
-                <Box sx={{ mt: 2, flex: 1 }}>
-                  <Typography>Incoming Schema</Typography>
-                  <Typography>Transformation 1</Typography>
-                  <Typography>Filter 1</Typography>
-                  <Typography>Transformation 2</Typography>
-                  <Typography color="error">Filter 2 (Error)</Typography>
-                  <Typography>Outgoing Schema</Typography>
+                Create Pipeline
+              </Button>
+            </Box>
+          </TabPanel>
+          <TabPanel value={tabValue} index={1}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box>
+                <Button
+                  onClick={handleGenerateTestEvent}
+                  variant="contained"
+                  color="primary"
+                  sx={{ mr: 2 }}
+                >
+                  Generate Test Event
+                </Button>
+                <Button
+                  onClick={handleTest}
+                  variant="contained"
+                  color="secondary"
+                >
+                  Test
+                </Button>
+              </Box>
+              <Box sx={{ display: "flex", gap: 2, height: "400px" }}>
+                <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                  <Typography variant="subtitle1">
+                    Generated Editable Test Event:
+                  </Typography>
+                  <Box sx={{ flex: 1 }}>
+                    <Editor
+                      height="100%"
+                      language="json"
+                      value={testEvent}
+                      onChange={(value) => setTestEvent(value || "")}
+                    />
+                  </Box>
+                </Box>
+                <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                  <Typography variant="subtitle1">Result:</Typography>
+                  <TextField
+                    multiline
+                    fullWidth
+                    rows={10}
+                    variant="outlined"
+                    value={testResult}
+                    InputProps={{
+                      readOnly: true,
+                      sx: { height: "100%" },
+                    }}
+                    sx={{ flex: 1 }}
+                  />
+                </Box>
+                <Box
+                  sx={{
+                    width: "200px",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <Typography variant="subtitle1">
+                    Transformations and Filters:
+                  </Typography>
+                  <Box sx={{ mt: 2, flex: 1 }}>
+                    <Typography>Incoming Schema</Typography>
+                    <Typography>Transformation 1</Typography>
+                    <Typography>Filter 1</Typography>
+                    <Typography>Transformation 2</Typography>
+                    <Typography color="error">Filter 2 (Error)</Typography>
+                    <Typography>Outgoing Schema</Typography>
+                  </Box>
                 </Box>
               </Box>
             </Box>
-          </Box>
-        </TabPanel>
-        <TabPanel value={tabValue} index={2}>
-          {/* Render Finalize tab content here */}
-          Finalize Content
-        </TabPanel>
-        <TabPanel value={tabValue} index={3}>
-          {/* Render Versioning and Evolution tab content here */}
-          Versioning and Evolution Content
-        </TabPanel>
-      </Box>
-    </Modal>
+          </TabPanel>
+          <TabPanel value={tabValue} index={2}>
+            {/* Render Finalize tab content here */}
+            Finalize Content
+          </TabPanel>
+          <TabPanel value={tabValue} index={3}>
+            {/* Render Versioning and Evolution tab content here */}
+            Versioning and Evolution Content
+          </TabPanel>
+        </Box>
+      </Modal>
+      <Dialog
+        open={warningDialogOpen}
+        onClose={() => setWarningDialogOpen(false)}
+      >
+        <DialogTitle>Schema Validation Warning</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            No outgoing schema selected. The pipeline will be processed without
+            schema validation. Is that okay?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setWarningDialogOpen(false)}>No</Button>
+          <Button
+            onClick={() => {
+              setWarningDialogOpen(false);
+              setConfirmDialogOpen(true);
+            }}
+            autoFocus
+          >
+            Yes
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={() => setConfirmDialogOpen(false)}
+      >
+        <DialogTitle>Confirm Pipeline Creation</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to create the pipeline?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialogOpen(false)}>No</Button>
+          <Button onClick={handleConfirmPipelineCreation} autoFocus>
+            Yes
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

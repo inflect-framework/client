@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   CssBaseline,
   Drawer,
@@ -21,6 +21,13 @@ import {
   Switch,
   FormControlLabel,
   ListItemButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+  CircularProgress,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -28,6 +35,8 @@ import {
   ChevronRight as ChevronRightIcon,
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
+  Pause as PauseIcon,
+  PlayArrow as PlayArrowIcon,
 } from "@mui/icons-material";
 import { styled, ThemeProvider, createTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -36,7 +45,7 @@ import { getConnections } from "../utils/getEntities";
 import { putConnection } from "../utils/putConnections";
 import TabbedModal from "./TabbedModal";
 import AddConnection from "./AddConnection";
-import { Connection } from "../types/connection";
+import { Connection, ConnectionTuple } from "../types/connection";
 
 const drawerWidth = 240;
 
@@ -115,26 +124,48 @@ function App() {
   const [open, setOpen] = useState(true);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [modalDisplayed, setModalDisplayed] = useState(false);
-  const [selectedConnection, setSelectedConnection] = useState<
-    [string, string, string, boolean, number] | null
-  >(null);
+  const [selectedConnection, setSelectedConnection] =
+    useState<ConnectionTuple | null>(null);
   const [connectionAlterations, setConnectionAlterations] = useState(0);
   const [mainContent, setMainContent] = useState("connections");
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogConnectionId, setDialogConnectionId] = useState<number | null>(
+    null
+  );
+  const [dialogActiveState, setDialogActiveState] = useState<boolean | null>(
+    null
+  );
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getConnections()
-      .then((rows: Connection[]) => {
-        setConnections(rows);
-      })
-      .catch(console.error);
+  const fetchConnections = async () => {
+    try {
+      const rows = await getConnections();
+      return rows;
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  };
+
+  const cachedConnections = useMemo(() => {
+    return fetchConnections();
   }, [connectionAlterations]);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const rows = await cachedConnections;
+      setConnections(rows);
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [cachedConnections]);
+
   const toggleModal = (connection: Connection) => {
-    setSelectedConnection(
-      Object.values(connection) as [string, string, string, boolean, number]
-    );
+    setSelectedConnection(Object.values(connection) as ConnectionTuple);
     setModalDisplayed((prev) => !prev);
   };
 
@@ -160,14 +191,19 @@ function App() {
   };
 
   const showConfirmPause = (connectionId: number, activeState: boolean) => {
+    setDialogConnectionId(connectionId);
+    setDialogActiveState(activeState);
+    setDialogOpen(true);
+  };
+
+  const handleDialogClose = (confirmed: boolean) => {
+    setDialogOpen(false);
     if (
-      window.confirm(
-        `Are you sure you want to ${
-          activeState ? "pause" : "restart"
-        } connection ${connectionId}?`
-      )
+      confirmed &&
+      dialogConnectionId !== null &&
+      dialogActiveState !== null
     ) {
-      pauseConnection(connectionId, activeState);
+      pauseConnection(dialogConnectionId, dialogActiveState);
     }
   };
 
@@ -177,7 +213,7 @@ function App() {
 
   const handleAddConnection = () => {
     setModalDisplayed(true);
-    setSelectedConnection(null); // No connection selected, indicating adding a new one
+    setSelectedConnection(null);
   };
 
   return (
@@ -259,65 +295,83 @@ function App() {
               component={Paper}
               sx={{ backgroundColor: theme.palette.background.paper }}
             >
-              <Table aria-label="connections table">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Source Topic</TableCell>
-                    <TableCell>Target Topic</TableCell>
-                    <TableCell>Transformation Name</TableCell>
-                    <TableCell>Pause</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {connections
-                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                    .map((connection: Connection) => (
-                      <TableRow key={connection.id}>
-                        <TableCell>
-                          <a onClick={() => toggleModal(connection)}>
-                            {connection.source_topic}
-                          </a>
-                        </TableCell>
-                        <TableCell>
-                          <a onClick={() => toggleModal(connection)}>
-                            {connection.target_topic}
-                          </a>
-                        </TableCell>
-                        <TableCell>
-                          <a onClick={() => toggleModal(connection)}>
-                            {connection.transformation_name}
-                          </a>
-                        </TableCell>
-                        <TableCell>
-                          <a
-                            onClick={() =>
-                              showConfirmPause(
-                                connection.id,
-                                connection.active_state
-                              )
-                            }
-                          >
-                            {connection.active_state ? (
-                              <img src="../icons/pause.svg" alt="Pause" />
-                            ) : (
-                              <img src="../icons/play.svg" alt="Play" />
-                            )}
-                          </a>
-                        </TableCell>
+              {loading ? (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    minHeight: "300px",
+                  }}
+                >
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <>
+                  <Table aria-label="connections table">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Source Topic</TableCell>
+                        <TableCell>Target Topic</TableCell>
+                        <TableCell>Transformation Name</TableCell>
+                        <TableCell>Pause</TableCell>
                       </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-              <TablePagination
-                rowsPerPageOptions={[5, 10, 25]}
-                component="div"
-                count={connections.length}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={handleChangePage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-                sx={{ backgroundColor: theme.palette.background.paper }}
-              />
+                    </TableHead>
+                    <TableBody>
+                      {connections
+                        .slice(
+                          page * rowsPerPage,
+                          page * rowsPerPage + rowsPerPage
+                        )
+                        .map((connection: Connection) => (
+                          <TableRow key={connection.id}>
+                            <TableCell>
+                              <a onClick={() => toggleModal(connection)}>
+                                {connection.source_topic}
+                              </a>
+                            </TableCell>
+                            <TableCell>
+                              <a onClick={() => toggleModal(connection)}>
+                                {connection.target_topic}
+                              </a>
+                            </TableCell>
+                            <TableCell>
+                              <a onClick={() => toggleModal(connection)}>
+                                {connection.transformation_name}
+                              </a>
+                            </TableCell>
+                            <TableCell>
+                              <a
+                                onClick={() =>
+                                  showConfirmPause(
+                                    connection.id,
+                                    connection.active_state
+                                  )
+                                }
+                              >
+                                {connection.active_state ? (
+                                  <PauseIcon />
+                                ) : (
+                                  <PlayArrowIcon />
+                                )}
+                              </a>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                  <TablePagination
+                    rowsPerPageOptions={[10, 25, 50]}
+                    component="div"
+                    count={connections.length}
+                    rowsPerPage={rowsPerPage}
+                    page={page}
+                    onPageChange={handleChangePage}
+                    onRowsPerPageChange={handleChangeRowsPerPage}
+                    sx={{ backgroundColor: theme.palette.background.paper }}
+                  />
+                </>
+              )}
             </TableContainer>
           ) : (
             <AddConnection connections={connections} />
@@ -329,6 +383,23 @@ function App() {
           onClose={() => setModalDisplayed(false)}
           connection={selectedConnection}
         />
+
+        <Dialog open={dialogOpen} onClose={() => handleDialogClose(false)}>
+          <DialogTitle>Confirm Pause/Restart</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              {`Are you sure you want to ${
+                dialogActiveState ? "pause" : "restart"
+              } connection ${dialogConnectionId}?`}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => handleDialogClose(false)}>No</Button>
+            <Button onClick={() => handleDialogClose(true)} autoFocus>
+              Yes
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </ThemeProvider>
   );
