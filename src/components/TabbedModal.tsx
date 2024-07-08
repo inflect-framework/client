@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   Box,
@@ -14,42 +14,21 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-} from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import Editor from "@monaco-editor/react";
-import Select, {
-  StylesConfig,
-  SingleValue,
-  MultiValue,
-  ActionMeta,
-} from "react-select";
-import { getCustomStyles } from "../utils/getCustomStyles";
-import { SelectedOption } from "../types/SelectedOption";
-
-const initialTransformations = [
-  { id: "1", type: "transformation", value: "capitalize" },
-  { id: "2", type: "filter", value: "isString" },
-  { id: "3", type: "transformation", value: "toUUID" },
-  { id: "4", type: "filter", value: "isBool" },
-  { id: "5", type: "transformation", value: "toNumber" },
-  { id: "6", type: "filter", value: "isNumber" },
-  { id: "7", type: "transformation", value: "toBool" },
-  { id: "8", type: "filter", value: "isUUID" },
-];
-
-const options = [
-  { value: "option1", label: "Option 1" },
-  { value: "option2", label: "Option 2" },
-  { value: "transformation1", label: "Transformation 1" },
-  { value: "transformation2", label: "Transformation 2" },
-  { value: "filter1", label: "Filter 1" },
-  { value: "filter2", label: "Filter 2" },
-];
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import CloseIcon from '@mui/icons-material/Close';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import Editor from '@monaco-editor/react';
+import Select from 'react-select';
+import { getCustomStyles } from '../utils/getCustomStyles';
+import { SelectedOption } from '../types/SelectedOption';
+import { Process } from '../types/process';
+import { Schema, SchemaFormat } from '../types/schema';
+import { getSchemas, getTopics, getProcesses } from '../utils/getEntities';
+import { postTestEvent } from '../utils/postTestEvent';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -62,7 +41,7 @@ function TabPanel(props: TabPanelProps) {
 
   return (
     <div
-      role="tabpanel"
+      role='tabpanel'
       hidden={value !== index}
       id={`tabpanel-${index}`}
       aria-labelledby={`tab-${index}`}
@@ -76,7 +55,7 @@ function TabPanel(props: TabPanelProps) {
 function a11yProps(index: number) {
   return {
     id: `tab-${index}`,
-    "aria-controls": `tabpanel-${index}`,
+    'aria-controls': `tabpanel-${index}`,
   };
 }
 
@@ -86,7 +65,7 @@ interface TabbedModalProps {
   connection: [string, string, string, boolean, number] | null;
 }
 
-const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
+const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
   const theme = useTheme();
   const mode = theme.palette.mode;
 
@@ -94,19 +73,56 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
   const [incomingSchema, setIncomingSchema] = useState<string | null>(null);
   const [outgoingSchema, setOutgoingSchema] = useState<string | null>(null);
   const [redirectTopic, setRedirectTopic] = useState<string | null>(null);
-  const [testEvent, setTestEvent] = useState("");
-  const [testResult, setTestResult] = useState("");
-  const [processes, setProcesses] = useState(initialTransformations);
+  const [testEvent, setTestEvent] = useState('');
+  const [testResult, setTestResult] = useState('');
+  const [schemaType, setSchemaType] = useState<SchemaFormat>('json');
+  const [processes, setProcesses] = useState<[] | Process[]>([]);
+  const [schemas, setSchemas] = useState<[] | Schema[]>([]);
+  const [topics, setTopics] = useState<[] | string[]>([]);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [warningDialogOpen, setWarningDialogOpen] = useState(false);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
+  const loadSchemas = () => {
+    const request = async () => {
+      const schemas = await getSchemas();
+      setSchemas(schemas);
+    };
+    request();
   };
 
-  const handleGenerateTestEvent = () => {
-    const generatedEvent = '{ "sample": "event" }';
-    setTestEvent(generatedEvent);
+  const loadProcesses = () => {
+    const request = async () => {
+      const processes = await getProcesses();
+      setProcesses(processes);
+    };
+    request();
+  };
+
+  const loadTopics = () => {
+    const request = async () => {
+      const topics = await getTopics();
+      setTopics(topics);
+    };
+    request();
+  };
+
+  useEffect(() => {
+    loadSchemas();
+    loadProcesses();
+    loadTopics();
+  }, []);
+
+  const createEditableTestEvent = () => {
+    const request = async () => {
+      const result = await postTestEvent(incomingSchema, schemaType);
+      setTestEvent(JSON.stringify(result, null, 2));
+    };
+
+    request();
+  };
+
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
   };
 
   const handleTest = async () => {
@@ -123,6 +139,13 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
   };
 
   const handleClose = () => {
+    setIncomingSchema(null);
+    setOutgoingSchema(null);
+    setRedirectTopic(null);
+    setTestEvent('');
+    setTestResult('');
+    setProcesses([]);
+    setTabValue(0);
     onClose();
   };
 
@@ -148,30 +171,28 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
     const newProcesses = [...processes];
     newProcesses.splice(index + 1, 0, {
       id: `${type}-${newProcesses.length + 1}`,
-      type: type,
-      value: `${type}${newProcesses.length + 1}`,
+      name: type,
+      is_filter: type === 'filter',
     });
     setProcesses(newProcesses);
   };
 
-  const handleDeleteItem = (id: string) => {
+  const handleDeleteItem = (id: number | string) => {
     setProcesses(processes.filter((item) => item.id !== id));
   };
 
   const handleCreatePipeline = () => {
     if (
       !outgoingSchema &&
-      processes.some(
-        (item) => item.type === "filter" || item.type === "transformation"
-      )
+      processes.some((item) => item.is_filter || !item.is_filter)
     ) {
       setWarningDialogOpen(true);
     } else if (
-      (outgoingSchema || processes.some((item) => item.type === "filter")) &&
+      (outgoingSchema || processes.some((item) => item.is_filter)) &&
       !redirectTopic
     ) {
       alert(
-        "Please select a redirect topic for the outgoing schema or filters."
+        'Please select a redirect topic for the outgoing schema or filters.'
       );
       return;
     } else {
@@ -179,9 +200,9 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
         incomingSchema,
         outgoingSchema: { value: outgoingSchema, redirectTopic },
         processes: processes.map((process) => ({
-          type: process.type,
-          value: process.value,
-          redirectTopic: process.type === "filter" ? redirectTopic : undefined,
+          type: process.is_filter ? 'filter' : 'transformation',
+          value: process.name,
+          redirectTopic: process.is_filter ? redirectTopic : undefined,
         })),
       };
 
@@ -197,9 +218,9 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
       incomingSchema,
       outgoingSchema: { value: outgoingSchema, redirectTopic },
       processes: processes.map((process) => ({
-        type: process.type,
-        value: process.value,
-        redirectTopic: process.type === "filter" ? redirectTopic : undefined,
+        type: process.is_filter ? 'filter' : 'transformation',
+        value: process.name,
+        redirectTopic: process.is_filter ? redirectTopic : undefined,
       })),
     };
 
@@ -217,35 +238,35 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
       <Modal
         open={open}
         onClose={(_, reason) => {
-          if (reason !== "backdropClick") {
+          if (reason !== 'backdropClick') {
             handleClose();
           }
         }}
-        aria-labelledby="modal-title"
-        aria-describedby="modal-description"
+        aria-labelledby='modal-title'
+        aria-describedby='modal-description'
       >
         <Box
           sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: "80%",
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '80%',
             minWidth: 900,
-            maxWidth: "90%",
-            bgcolor: "background.paper",
+            maxWidth: '90%',
+            bgcolor: 'background.paper',
             boxShadow: 24,
             p: 4,
             minHeight: 700,
-            maxHeight: "90vh", // Ensure the modal does not grow beyond the viewport height
-            overflow: "auto", // Allow the content to scroll
+            maxHeight: '90vh', // Ensure the modal does not grow beyond the viewport height
+            overflow: 'auto', // Allow the content to scroll
           }}
         >
           <IconButton
-            aria-label="close"
+            aria-label='close'
             onClick={handleClose}
             sx={{
-              position: "absolute",
+              position: 'absolute',
               right: 8,
               top: 8,
               color: (theme) => theme.palette.grey[500],
@@ -253,8 +274,8 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
           >
             <CloseIcon />
           </IconButton>
-          <Typography id="modal-title" variant="h6" component="h2">
-            Edit Connection
+          <Typography id='modal-title' variant='h6' component='h2'>
+            {connection ? 'Edit Pipeline' : 'Create New Pipeline'}
           </Typography>
           <Tabs
             value={tabValue}
@@ -262,19 +283,22 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
               resetDialogs();
               handleTabChange(event, newValue);
             }}
-            aria-label="connection tabs"
+            aria-label='connection tabs'
           >
-            <Tab label="Design" {...a11yProps(0)} />
-            <Tab label="Test" {...a11yProps(1)} />
-            <Tab label="Finalize" {...a11yProps(2)} />
-            <Tab label="Versioning and Evolution" {...a11yProps(3)} />
+            <Tab label='Design' {...a11yProps(0)} />
+            <Tab label='Test' {...a11yProps(1)} />
+            <Tab label='Finalize' {...a11yProps(2)} />
+            <Tab label='Versioning and Evolution' {...a11yProps(3)} />
           </Tabs>
           <TabPanel value={tabValue} index={0}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box>
                 <Typography>Incoming Schema</Typography>
                 <Select
-                  options={options}
+                  options={schemas.map((schema) => ({
+                    value: schema.subject,
+                    label: schema.subject,
+                  }))}
                   isClearable
                   styles={getCustomStyles(mode)}
                   onChange={(selectedOption) =>
@@ -286,11 +310,14 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
                   }
                 />
               </Box>
-              <Box sx={{ display: "flex", gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
                 <Box sx={{ flex: 1 }}>
                   <Typography>Outgoing Schema</Typography>
                   <Select
-                    options={options}
+                    options={schemas.map((schema) => ({
+                      value: schema.subject,
+                      label: schema.subject,
+                    }))}
                     isClearable
                     styles={getCustomStyles(mode)}
                     onChange={(selectedOption) =>
@@ -305,7 +332,10 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
                 <Box sx={{ flex: 1 }}>
                   <Typography>Topic On Fail</Typography>
                   <Select
-                    options={options}
+                    options={topics.map((topic) => ({
+                      value: topic,
+                      label: topic,
+                    }))}
                     isClearable
                     styles={getCustomStyles(mode)}
                     onChange={(selectedOption) =>
@@ -319,38 +349,43 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
                 </Box>
               </Box>
               <Divider sx={{ my: 2 }} />
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {processes.map((item, index) => (
                   <Box
                     key={item.id}
                     sx={{
-                      display: "flex",
-                      alignItems: "flex-end",
+                      display: 'flex',
+                      alignItems: 'flex-end',
                       gap: 2,
                     }}
                   >
-                    {item.type === "filter" ? (
+                    {item.is_filter ? (
                       <>
                         <Box sx={{ flex: 1 }}>
                           <Typography>
-                            Filter{" "}
+                            Filter{' '}
                             {processes
-                              .filter((p) => p.type === "filter")
+                              .filter((p) => p.is_filter)
                               .indexOf(item) + 1}
                           </Typography>
                           <Select
-                            options={options}
+                            options={processes
+                              .filter((p) => p.is_filter)
+                              .map((process) => ({
+                                value: process.name,
+                                label: process.name,
+                              }))}
                             isClearable
                             styles={getCustomStyles(mode)}
-                            defaultValue={options.find(
-                              (option) => option.value === item.value
-                            )}
                           />
                         </Box>
                         <Box sx={{ flex: 1 }}>
                           <Typography>Topic On Fail</Typography>
                           <Select
-                            options={options}
+                            options={topics.map((topic) => ({
+                              value: topic,
+                              label: topic,
+                            }))}
                             isClearable
                             styles={getCustomStyles(mode)}
                           />
@@ -359,25 +394,26 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
                     ) : (
                       <Box sx={{ flex: 1 }}>
                         <Typography>
-                          Transformation{" "}
-                          {processes
-                            .filter((p) => p.type === "transformation")
-                            .indexOf(item) + 1}
+                          Transformation{' '}
+                          {processes.filter((p) => !p.is_filter).indexOf(item) +
+                            1}
                         </Typography>
                         <Select
-                          options={options}
+                          options={processes
+                            .filter((p) => !p.is_filter)
+                            .map((process) => ({
+                              value: process.name,
+                              label: process.name,
+                            }))}
                           isClearable
                           styles={getCustomStyles(mode)}
-                          defaultValue={options.find(
-                            (option) => option.value === item.value
-                          )}
                         />
                       </Box>
                     )}
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <IconButton
-                        onClick={() => handleAddItem(item.type, index)}
-                        sx={{ alignSelf: "flex-end" }}
+                        onClick={() => handleAddItem(item.name, index)}
+                        sx={{ alignSelf: 'flex-end' }}
                       >
                         <AddIcon />
                       </IconButton>
@@ -394,92 +430,109 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
                   </Box>
                 ))}
               </Box>
-              <Box sx={{ display: "flex", gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button
                   onClick={() =>
-                    handleAddItem("transformation", processes.length - 1)
+                    handleAddItem('transformation', processes.length - 1)
                   }
-                  variant="contained"
+                  variant='contained'
                   startIcon={<AddIcon />}
-                  sx={{ width: "fit-content", alignSelf: "flex-start" }}
+                  sx={{ width: 'fit-content', alignSelf: 'flex-start' }}
                 >
                   Add Transformation
                 </Button>
                 <Button
-                  onClick={() => handleAddItem("filter", processes.length - 1)}
-                  variant="contained"
+                  onClick={() => handleAddItem('filter', processes.length - 1)}
+                  variant='contained'
                   startIcon={<AddIcon />}
-                  sx={{ width: "fit-content", alignSelf: "flex-start" }}
+                  sx={{ width: 'fit-content', alignSelf: 'flex-start' }}
                 >
                   Add Filter
                 </Button>
               </Box>
               <Button
                 onClick={handleCreatePipeline}
-                variant="contained"
-                color="secondary"
-                sx={{ width: "fit-content", alignSelf: "flex-start", mt: 2 }}
+                variant='contained'
+                color='secondary'
+                sx={{ width: 'fit-content', alignSelf: 'flex-start', mt: 2 }}
               >
                 Create Pipeline
               </Button>
             </Box>
           </TabPanel>
           <TabPanel value={tabValue} index={1}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ width: '200px' }}>
+                <Typography>Schema Type</Typography>
+                <Select
+                  options={[
+                    { value: 'json', label: 'JSON' },
+                    { value: 'avro', label: 'Avro' },
+                    { value: 'protobuf', label: 'Protobuf' },
+                  ]}
+                  value={{ value: schemaType, label: schemaType.toUpperCase() }}
+                  onChange={(selectedOption) =>
+                    setSchemaType(
+                      (selectedOption as SelectedOption).value as SchemaFormat
+                    )
+                  }
+                  styles={getCustomStyles(mode)}
+                />
+              </Box>
               <Box>
                 <Button
-                  onClick={handleGenerateTestEvent}
-                  variant="contained"
-                  color="primary"
+                  onClick={createEditableTestEvent}
+                  variant='contained'
+                  color='primary'
                   sx={{ mr: 2 }}
                 >
                   Generate Test Event
                 </Button>
                 <Button
                   onClick={handleTest}
-                  variant="contained"
-                  color="secondary"
+                  variant='contained'
+                  color='secondary'
                 >
                   Test
                 </Button>
               </Box>
-              <Box sx={{ display: "flex", gap: 2, height: "450px" }}>
-                <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                  <Typography variant="subtitle1">
+              <Box sx={{ display: 'flex', gap: 2, height: '450px' }}>
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <Typography variant='subtitle1'>
                     Generated Editable Test Event:
                   </Typography>
                   <Box sx={{ flex: 1 }}>
                     <Editor
-                      height="100%"
-                      language="json"
+                      height='100%'
+                      language='json'
                       value={testEvent}
-                      onChange={(value) => setTestEvent(value || "")}
+                      onChange={(value) => setTestEvent(value || '')}
                     />
                   </Box>
                 </Box>
-                <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                  <Typography variant="subtitle1">Result:</Typography>
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <Typography variant='subtitle1'>Result:</Typography>
                   <TextField
                     multiline
                     fullWidth
                     rows={10}
-                    variant="outlined"
+                    variant='outlined'
                     value={testResult}
                     InputProps={{
                       readOnly: true,
-                      sx: { height: "100%" },
+                      sx: { height: '100%' },
                     }}
                     sx={{ flex: 1 }}
                   />
                 </Box>
                 <Box
                   sx={{
-                    width: "200px",
-                    display: "flex",
-                    flexDirection: "column",
+                    width: '200px',
+                    display: 'flex',
+                    flexDirection: 'column',
                   }}
                 >
-                  <Typography variant="subtitle1">
+                  <Typography variant='subtitle1'>
                     Transformations and Filters:
                   </Typography>
                   <Box sx={{ mt: 2, flex: 1 }}>
@@ -487,7 +540,7 @@ const TabbedModal = ({ open, onClose }: TabbedModalProps) => {
                     <Typography>Transformation 1</Typography>
                     <Typography>Filter 1</Typography>
                     <Typography>Transformation 2</Typography>
-                    <Typography color="error">Filter 2 (Error)</Typography>
+                    <Typography color='error'>Filter 2 (Error)</Typography>
                     <Typography>Outgoing Schema</Typography>
                   </Box>
                 </Box>

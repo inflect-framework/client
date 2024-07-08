@@ -1,11 +1,11 @@
-import React from "react";
-import { createRoot } from "react-dom/client";
-import App from "./components/App";
-import { ThemeProvider, CssBaseline, useMediaQuery } from "@mui/material";
-import { darkTheme, lightTheme } from "./components/theme";
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './components/App';
+import { ThemeProvider, CssBaseline, useMediaQuery } from '@mui/material';
+import { darkTheme, lightTheme } from './components/theme';
 
 function Main() {
-  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [darkMode, setDarkMode] = React.useState(prefersDarkMode);
 
   React.useEffect(() => {
@@ -25,7 +25,7 @@ function Main() {
   );
 }
 
-const container = document.getElementById("root");
+const container = document.getElementById('root');
 const root = createRoot(container!);
 
 root.render(
