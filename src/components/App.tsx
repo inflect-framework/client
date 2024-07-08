@@ -41,7 +41,7 @@ import {
 import { styled, ThemeProvider, createTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { lightTheme, darkTheme } from './theme';
-import { getConnections } from '../utils/getEntities';
+import { getPipelines } from '../utils/getEntities';
 import { putConnection } from '../utils/putConnections';
 import TabbedModal from './TabbedModal';
 import AddConnection from './AddConnection';
@@ -141,7 +141,7 @@ function App() {
 
   const fetchConnections = async () => {
     try {
-      const rows = await getConnections();
+      const rows = await getPipelines();
       return rows;
     } catch (error) {
       console.error(error);
