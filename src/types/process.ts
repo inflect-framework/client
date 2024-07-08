@@ -1,5 +1,5 @@
 export interface Process {
   id: number | string;
-  name: string;
+  processor_name: string;
   is_filter: boolean;
 }

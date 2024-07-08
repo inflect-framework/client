@@ -27,7 +27,7 @@ import { getCustomStyles } from '../utils/getCustomStyles';
 import { SelectedOption } from '../types/SelectedOption';
 import { Process } from '../types/process';
 import { Schema, SchemaFormat } from '../types/schema';
-import { getSchemas, getTopics, getProcesses } from '../utils/getEntities';
+import { getTopicsAndSchemas, getProcessors } from '../utils/getEntities';
 import { postTestEvent } from '../utils/postTestEvent';
 
 interface TabPanelProps {
@@ -82,34 +82,44 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [warningDialogOpen, setWarningDialogOpen] = useState(false);
 
-  const loadSchemas = () => {
+  // const loadSchemas = () => {
+  //   const request = async () => {
+  //     const schemas = await getSchemas();
+  //     setSchemas(schemas);
+  //   };
+  //   request();
+  // };
+
+  const loadTopicsAndSchemas = () => {
     const request = async () => {
-      const schemas = await getSchemas();
-      setSchemas(schemas);
-    };
+      const result = await getTopicsAndSchemas();
+      setSchemas(result.schemas);
+      setTopics(result.topics)
+      console.log('schemas:', schemas)
+      console.log('topics:',  topics)
+    }
     request();
-  };
+  }
 
   const loadProcesses = () => {
     const request = async () => {
-      const processes = await getProcesses();
+      const processes = await getProcessors();
       setProcesses(processes);
     };
     request();
   };
 
-  const loadTopics = () => {
-    const request = async () => {
-      const topics = await getTopics();
-      setTopics(topics);
-    };
-    request();
-  };
+  // const loadTopics = () => {
+  //   const request = async () => {
+  //     const topics = await getTopics();
+  //     setTopics(topics);
+  //   };
+  //   request();
+  // };
 
   useEffect(() => {
-    loadSchemas();
+    loadTopicsAndSchemas();
     loadProcesses();
-    loadTopics();
   }, []);
 
   const createEditableTestEvent = () => {
@@ -201,7 +211,7 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
         outgoingSchema: { value: outgoingSchema, redirectTopic },
         processes: processes.map((process) => ({
           type: process.is_filter ? 'filter' : 'transformation',
-          value: process.name,
+          value: process.processor_name,
           redirectTopic: process.is_filter ? redirectTopic : undefined,
         })),
       };
@@ -219,7 +229,7 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
       outgoingSchema: { value: outgoingSchema, redirectTopic },
       processes: processes.map((process) => ({
         type: process.is_filter ? 'filter' : 'transformation',
-        value: process.name,
+        value: process.processor_name,
         redirectTopic: process.is_filter ? redirectTopic : undefined,
       })),
     };
@@ -296,8 +306,8 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                 <Typography>Incoming Schema</Typography>
                 <Select
                   options={schemas.map((schema) => ({
-                    value: schema.subject,
-                    label: schema.subject,
+                    value: schema,
+                    label: schema
                   }))}
                   isClearable
                   styles={getCustomStyles(mode)}
@@ -315,8 +325,8 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                   <Typography>Outgoing Schema</Typography>
                   <Select
                     options={schemas.map((schema) => ({
-                      value: schema.subject,
-                      label: schema.subject,
+                      value: schema,
+                      label: schema
                     }))}
                     isClearable
                     styles={getCustomStyles(mode)}
@@ -372,8 +382,8 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                             options={processes
                               .filter((p) => p.is_filter)
                               .map((process) => ({
-                                value: process.name,
-                                label: process.name,
+                                value: process.processor_name,
+                                label: process.processor_name,
                               }))}
                             isClearable
                             styles={getCustomStyles(mode)}
@@ -402,8 +412,8 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                           options={processes
                             .filter((p) => !p.is_filter)
                             .map((process) => ({
-                              value: process.name,
-                              label: process.name,
+                              value: process.processor_name,
+                              label: process.processor_name,
                             }))}
                           isClearable
                           styles={getCustomStyles(mode)}
@@ -412,7 +422,7 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                     )}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <IconButton
-                        onClick={() => handleAddItem(item.name, index)}
+                        onClick={() => handleAddItem(item.processor_name, index)}
                         sx={{ alignSelf: 'flex-end' }}
                       >
                         <AddIcon />
