@@ -186,7 +186,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
       publishTopic,
       incomingSchema,
       outgoingSchema: { value: outgoingSchema, redirectTopic },
-      processes: processors.map((processor) => ({
+      processors: processors.map((processor) => ({
         type: processor.is_filter ? 'filter' : 'transformation',
         value: processor.processor_name,
         redirectTopic: processor.is_filter ? redirectTopic : undefined,
@@ -211,7 +211,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
     } else {
       const pipeline = createPipelineObject();
       setUserCreatedPipeline(pipeline);
-      console.log(pipeline);
+      console.log(userCreatedPipeline);
       setTabValue(1);
     }
   };

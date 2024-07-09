@@ -9,16 +9,16 @@ export interface Pipeline {
 export type PipelineTuple = [string, string, string, boolean, number];
 
 export interface FrontendPipeline {
-  subscribeTopic: string;
-  publishTopic: string;
-  incomingSchema: string;
+  subscribeTopic: string | null;
+  publishTopic: string | null;
+  incomingSchema: string | null;
   outgoingSchema: {
-    value: string;
-    redirectTopic: string;
+    value: string | null;
+    redirectTopic: string | null;
   };
-  processes: {
-    type: string;
-    value: string;
-    redirectTopic?: string;
+  processors: {
+    type: string | null;
+    value: string | null;
+    redirectTopic?: string | null;
   }[];
 }
