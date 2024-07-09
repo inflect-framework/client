@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Input,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
@@ -27,9 +28,9 @@ import { getCustomStyles } from '../utils/getCustomStyles';
 import { SelectedOption } from '../types/SelectedOption';
 import { Process } from '../types/process';
 import { Schema, SchemaFormat } from '../types/schema';
-import { getTopicsAndSchemas, getProcessors } from '../utils/getEntities';
+import { getProcessors, getTopicsAndSchemas } from '../utils/getEntities';
 import { postTestEvent } from '../utils/postTestEvent';
-import { FrontendPipeline } from '../types/pipelines';
+import { FrontendPipeline, PipelineStep } from '../types/pipelines';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -67,26 +68,42 @@ interface TabbedModalProps {
 }
 
 const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
+  // Theme
   const theme = useTheme();
   const mode = theme.palette.mode;
 
+  // Modal
   const [tabValue, setTabValue] = useState(0);
+
+  // Select Options
+  const [schemas, setSchemas] = useState<Schema[]>([]);
+  const [topics, setTopics] = useState<string[]>([]);
+  const [processorOptions, setProcessorOptions] = useState<Process[]>([]);
+
+  // Pipeline Creation/Update
+  const [newPipelineName, setNewPipelineName] = useState('');
   const [incomingSchema, setIncomingSchema] = useState<string | null>(null);
   const [outgoingSchema, setOutgoingSchema] = useState<string | null>(null);
-  const [redirectTopic, setRedirectTopic] = useState<string | null>(null);
+  const [schemaRedirectTopic, setSchemaRedirectTopic] = useState<string | null>(
+    null
+  );
+  const [displayedSteps, setdisplayedSteps] = useState<[] | PipelineStep[]>([]);
+
+  const [sourceTopic, setsourceTopic] = useState<string | null>(null);
+  const [targetTopic, settargetTopic] = useState<string | null>(null);
+  const [userCreatedPipeline, setUserCreatedPipeline] =
+    useState<null | FrontendPipeline>(null);
+
+  // Dialogs
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
+
+  // Test Events
+  const [selectedIncomingSchemaFormat, setSelectedIncomingSchemaFormat] =
+    useState<string | null>(null);
   const [testEvent, setTestEvent] = useState('');
   const [testResult, setTestResult] = useState('');
   const [schemaType, setSchemaType] = useState<SchemaFormat>('json');
-  const [processors, setProcessors] = useState<Process[]>([]);
-  const [availableProcessors, setAvailableProcessors] = useState<Process[]>([]);
-  const [schemas, setSchemas] = useState<Schema[]>([]);
-  const [topics, setTopics] = useState<string[]>([]);
-  const [subscribeTopic, setSubscribeTopic] = useState<string | null>(null);
-  const [publishTopic, setPublishTopic] = useState<string | null>(null);
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
-  const [userCreatedPipeline, setUserCreatedPipeline] =
-    useState<null | FrontendPipeline>(null);
 
   const loadTopicsAndSchemas = () => {
     const request = async () => {
@@ -102,7 +119,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
   const loadProcesses = () => {
     const request = async () => {
       const request = await getProcessors();
-      setAvailableProcessors(request);
+      setProcessorOptions(request);
     };
     request();
   };
@@ -138,90 +155,90 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
   };
 
   const handleClose = () => {
+    setNewPipelineName('');
     setIncomingSchema(null);
     setOutgoingSchema(null);
-    setRedirectTopic(null);
+    setSchemaRedirectTopic(null);
     setTestEvent('');
     setTestResult('');
-    setProcessors([]);
+    setdisplayedSteps([]);
     setTabValue(0);
     onClose();
   };
 
   const handleMoveUp = (index: number) => {
     if (index === 0) return;
-    const newProcesses = [...processors];
+    const newProcesses = [...displayedSteps];
     const temp = newProcesses[index - 1];
     newProcesses[index - 1] = newProcesses[index];
     newProcesses[index] = temp;
-    setProcessors(newProcesses);
+    console.log('New Processes:', newProcesses);
+    setdisplayedSteps(newProcesses);
   };
 
   const handleMoveDown = (index: number) => {
-    if (index === processors.length - 1) return;
-    const newProcesses = [...processors];
+    if (index === displayedSteps.length - 1) return;
+    const newProcesses = [...displayedSteps];
     const temp = newProcesses[index + 1];
     newProcesses[index + 1] = newProcesses[index];
     newProcesses[index] = temp;
-    setProcessors(newProcesses);
+    console.log('New Processes:', newProcesses);
+    setdisplayedSteps(newProcesses);
   };
 
   const handleAddItem = (type: string, index: number) => {
-    const newProcesses = [...processors];
-    newProcesses.splice(index + 1, 0, {
-      id: `${type}-${newProcesses.length + 1}`,
+    const newdisplayedSteps = [...displayedSteps];
+    newdisplayedSteps.splice(index + 1, 0, {
+      id: processorOptions.find((p) => p.processor_name === type)?.id as number,
       processor_name: type,
       is_filter: type === 'filter',
     });
-    setProcessors(newProcesses);
+    setdisplayedSteps(newdisplayedSteps);
   };
 
   const handleDeleteItem = (id: number | string) => {
-    setProcessors(processors.filter((item) => item.id !== id));
+    setdisplayedSteps(displayedSteps.filter((item) => item.id !== id));
+  };
+
+  const handleAddStep = (selectedOption: SelectedOption) => {
+    const newdisplayedSteps = [...displayedSteps];
+    console.log('Selected Option:', selectedOption);
+    console.log('New displayedSteps:', newdisplayedSteps);
+    setdisplayedSteps(newdisplayedSteps);
+  };
+
+  const filterTopics: String[] = [];
+  const setFilterTopics = (newFilterTopics: string[]) => {
+    filterTopics.push(...newFilterTopics);
   };
 
   const createPipelineObject = (): FrontendPipeline => {
     return {
-      subscribeTopic,
-      publishTopic,
+      name: newPipelineName,
+      sourceTopic,
+      targetTopic,
       incomingSchema,
-      outgoingSchema: { value: outgoingSchema, redirectTopic },
-      processors: processors.map((processor) => ({
-        type: processor.is_filter ? 'filter' : 'transformation',
-        value: processor.processor_name,
-        redirectTopic: processor.is_filter ? redirectTopic : undefined,
+      outgoingSchema: {
+        name: outgoingSchema,
+        redirectTopic: schemaRedirectTopic,
+      },
+      steps: displayedSteps.map((step) => ({
+        id: step.id,
+        processor_name: step.processor_name,
+        is_filter: step.is_filter,
       })),
     };
   };
 
   const handleCreatePipeline = () => {
-    if (
-      !outgoingSchema &&
-      processors.some((item) => item.is_filter || !item.is_filter)
-    ) {
-      setWarningDialogOpen(true);
-    } else if (
-      (outgoingSchema || processors.some((item) => item.is_filter)) &&
-      !redirectTopic
-    ) {
-      alert(
-        'Please select a redirect topic for the outgoing schema or filters.'
-      );
-      return;
-    } else {
-      const pipeline = createPipelineObject();
-      setUserCreatedPipeline(pipeline);
-      console.log(userCreatedPipeline);
-      setTabValue(1);
-    }
-  };
-
-  const handleConfirmPipelineCreation = () => {
-    setConfirmDialogOpen(false);
+    console.log('Creating Pipeline');
     const pipeline = createPipelineObject();
     setUserCreatedPipeline(pipeline);
-    console.log(pipeline);
-    setTabValue(1);
+    console.log('The pipeline looks like:', pipeline);
+    console.log(
+      'React batches updates therefore the logging statement for the state is:',
+      userCreatedPipeline
+    );
   };
 
   const resetDialogs = () => {
@@ -229,25 +246,10 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
     setConfirmDialogOpen(false);
   };
 
-  const transformations = []
-
-  const handleAddTransformation = (event) => {
-    transformations.push(event.target.value)
-    console.log(
-      'transformations:',
-      transformations
-    )
-  }
-
   return (
     <>
       <Modal
         open={open}
-        onClose={(_, reason) => {
-          if (reason !== 'backdropClick') {
-            handleClose();
-          }
-        }}
         aria-labelledby='modal-title'
         aria-describedby='modal-description'
       >
@@ -297,24 +299,62 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
             <Tab label='Versioning and Evolution' {...a11yProps(3)} />
           </Tabs>
           <TabPanel value={tabValue} index={0}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'Column',
+                gap: 0,
+              }}
+            >
+              <Typography>Name</Typography>
+              <Input
+                required
+                sx={{
+                  width: '300px',
+                  border: '1px solid #ccc', // Add a border
+                  borderRadius: '4px',
+                }}
+                onChange={(event) => setNewPipelineName(event.target.value)}
+              />
+            </Box>
+            <Divider sx={{ my: 2 }} />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box>
-                <Typography>Incoming Schema</Typography>
-                <Select
-                  options={schemas.map((schema) => ({
-                    value: schema,
-                    label: schema,
-                  }))}
-                  isClearable
-                  styles={getCustomStyles(mode)}
-                  onChange={(selectedOption) =>
-                    setIncomingSchema(
-                      selectedOption
-                        ? (selectedOption as SelectedOption).value
-                        : null
-                    )
-                  }
-                />
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography>Incoming Schema</Typography>
+                  <Select
+                    options={schemas.map((schema) => ({
+                      value: schema,
+                      label: schema,
+                    }))}
+                    isClearable
+                    styles={getCustomStyles(mode)}
+                    onChange={(selectedOption) =>
+                      setIncomingSchema(
+                        selectedOption
+                          ? (selectedOption as SelectedOption).value
+                          : null
+                      )
+                    }
+                  />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography>Incoming Schema Type</Typography>
+                  <Select
+                    options={['avro', 'json', 'protobuf'].map((schemaType) => ({
+                      value: schemaType,
+                      label: schemaType,
+                    }))}
+                    isClearable
+                    {...(incomingSchema ? { required: true } : {})}
+                    styles={getCustomStyles(mode)}
+                    onChange={(selectedOption) =>
+                      setSelectedIncomingSchemaFormat(
+                        (selectedOption as SelectedOption).value as SchemaFormat
+                      )
+                    }
+                  />
+                </Box>
               </Box>{' '}
               <Box>
                 <Typography>Subscribe Topic</Typography>
@@ -326,7 +366,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                   isClearable
                   styles={getCustomStyles(mode)}
                   onChange={(selectedOption) =>
-                    setSubscribeTopic(
+                    setsourceTopic(
                       selectedOption
                         ? (selectedOption as SelectedOption).value
                         : null
@@ -344,7 +384,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                   isClearable
                   styles={getCustomStyles(mode)}
                   onChange={(selectedOption) =>
-                    setPublishTopic(
+                    settargetTopic(
                       selectedOption
                         ? (selectedOption as SelectedOption).value
                         : null
@@ -381,7 +421,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                     isClearable
                     styles={getCustomStyles(mode)}
                     onChange={(selectedOption) =>
-                      setRedirectTopic(
+                      setSchemaRedirectTopic(
                         selectedOption
                           ? (selectedOption as SelectedOption).value
                           : null
@@ -392,9 +432,9 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
               </Box>
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {processors.map((item, index) => (
+                {displayedSteps.map((item, index) => (
                   <Box
-                    key={item.id}
+                    key={index.toString() + '-' + item.processor_name}
                     sx={{
                       display: 'flex',
                       alignItems: 'flex-end',
@@ -406,17 +446,18 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                         <Box sx={{ flex: 1 }}>
                           <Typography>
                             Filter{' '}
-                            {processors
+                            {displayedSteps
                               .filter((p) => p.is_filter)
                               .indexOf(item) + 1}
                           </Typography>
                           <Select
-                            options={availableProcessors
+                            options={processorOptions
                               .filter((p) => p.is_filter)
                               .map((processor) => ({
                                 value: processor.processor_name,
                                 label: processor.processor_name,
                               }))}
+                            onChange={handleAddStep}
                             isClearable
                             styles={getCustomStyles(mode)}
                           />
@@ -428,6 +469,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                               value: topic,
                               label: topic,
                             }))}
+                            // onChange={handleAddFilterTopic}
                             isClearable
                             styles={getCustomStyles(mode)}
                           />
@@ -437,18 +479,18 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                       <Box sx={{ flex: 1 }}>
                         <Typography>
                           Transformation{' '}
-                          {processors
+                          {displayedSteps
                             .filter((p) => !p.is_filter)
                             .indexOf(item) + 1}
                         </Typography>
                         <Select
-                          options={availableProcessors
+                          options={processorOptions
                             .filter((p) => !p.is_filter)
                             .map((processor) => ({
                               value: processor.processor_name,
                               label: processor.processor_name,
                             }))}
-                          // onChange={handleAddTransformation}
+                          onChange={handleAddStep}
                           isClearable
                           styles={getCustomStyles(mode)}
                         />
@@ -479,7 +521,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button
                   onClick={() =>
-                    handleAddItem('transformation', processors.length - 1)
+                    handleAddItem('transformation', displayedSteps.length - 1)
                   }
                   variant='contained'
                   startIcon={<AddIcon />}
@@ -488,7 +530,9 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                   Add Transformation
                 </Button>
                 <Button
-                  onClick={() => handleAddItem('filter', processors.length - 1)}
+                  onClick={() =>
+                    handleAddItem('filter', displayedSteps.length - 1)
+                  }
                   variant='contained'
                   startIcon={<AddIcon />}
                   sx={{ width: 'fit-content', alignSelf: 'flex-start' }}
@@ -639,7 +683,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmDialogOpen(false)}>No</Button>
-          <Button onClick={handleConfirmPipelineCreation} autoFocus>
+          <Button onClick={handleCreatePipeline} autoFocus>
             Yes
           </Button>
         </DialogActions>

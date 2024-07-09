@@ -8,17 +8,21 @@ export interface Pipeline {
 
 export type PipelineTuple = [string, string, string, boolean, number];
 
+export interface PipelineStep {
+  id: number;
+  processor_name: string;
+  is_filter: boolean;
+  redirect_topic?: string;
+}
+
 export interface FrontendPipeline {
-  subscribeTopic: string | null;
-  publishTopic: string | null;
+  name: string;
+  sourceTopic: string | null;
+  targetTopic: string | null;
   incomingSchema: string | null;
   outgoingSchema: {
-    value: string | null;
+    name: string | null;
     redirectTopic: string | null;
   };
-  processors: {
-    type: string | null;
-    value: string | null;
-    redirectTopic?: string | null;
-  }[];
+  steps: PipelineStep[] | [];
 }
