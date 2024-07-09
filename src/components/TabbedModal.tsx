@@ -229,6 +229,16 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
     setConfirmDialogOpen(false);
   };
 
+  const transformations = []
+
+  const handleAddTransformation = (event) => {
+    transformations.push(event.target.value)
+    console.log(
+      'transformations:',
+      transformations
+    )
+  }
+
   return (
     <>
       <Modal
@@ -298,7 +308,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                   isClearable
                   styles={getCustomStyles(mode)}
                   onChange={(selectedOption) =>
-                    setSubscribeTopic(
+                    setIncomingSchema(
                       selectedOption
                         ? (selectedOption as SelectedOption).value
                         : null
@@ -316,7 +326,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                   isClearable
                   styles={getCustomStyles(mode)}
                   onChange={(selectedOption) =>
-                    setPublishTopic(
+                    setSubscribeTopic(
                       selectedOption
                         ? (selectedOption as SelectedOption).value
                         : null
@@ -334,7 +344,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                   isClearable
                   styles={getCustomStyles(mode)}
                   onChange={(selectedOption) =>
-                    setIncomingSchema(
+                    setPublishTopic(
                       selectedOption
                         ? (selectedOption as SelectedOption).value
                         : null
@@ -438,6 +448,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                               value: processor.processor_name,
                               label: processor.processor_name,
                             }))}
+                          // onChange={handleAddTransformation}
                           isClearable
                           styles={getCustomStyles(mode)}
                         />
