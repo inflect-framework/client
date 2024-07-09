@@ -62,10 +62,10 @@ function a11yProps(index: number) {
 interface TabbedModalProps {
   open: boolean;
   onClose: () => void;
-  connection: [string, string, string, boolean, number] | null;
+  pipeline: [string, string, string, boolean, number] | null;
 }
 
-const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
+const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
   const theme = useTheme();
   const mode = theme.palette.mode;
 
@@ -94,12 +94,12 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
     const request = async () => {
       const result = await getTopicsAndSchemas();
       setSchemas(result.schemas);
-      setTopics(result.topics)
-      console.log('schemas:', schemas)
-      console.log('topics:',  topics)
-    }
+      setTopics(result.topics);
+      console.log('schemas:', schemas);
+      console.log('topics:', topics);
+    };
     request();
-  }
+  };
 
   const loadProcesses = () => {
     const request = async () => {
@@ -285,7 +285,7 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
             <CloseIcon />
           </IconButton>
           <Typography id='modal-title' variant='h6' component='h2'>
-            {connection ? 'Edit Pipeline' : 'Create New Pipeline'}
+            {pipeline ? 'Edit Pipeline' : 'Create New Pipeline'}
           </Typography>
           <Tabs
             value={tabValue}
@@ -293,7 +293,7 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
               resetDialogs();
               handleTabChange(event, newValue);
             }}
-            aria-label='connection tabs'
+            aria-label='pipeline tabs'
           >
             <Tab label='Design' {...a11yProps(0)} />
             <Tab label='Test' {...a11yProps(1)} />
@@ -306,8 +306,8 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                 <Typography>Incoming Schema</Typography>
                 <Select
                   options={schemas.map((schema) => ({
-                    value: schema,
-                    label: schema
+                    value: schema.toString(),
+                    label: schema.toString(),
                   }))}
                   isClearable
                   styles={getCustomStyles(mode)}
@@ -325,8 +325,8 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                   <Typography>Outgoing Schema</Typography>
                   <Select
                     options={schemas.map((schema) => ({
-                      value: schema,
-                      label: schema
+                      value: schema.toString(),
+                      label: schema.toString(),
                     }))}
                     isClearable
                     styles={getCustomStyles(mode)}
@@ -422,7 +422,9 @@ const TabbedModal = ({ open, onClose, connection }: TabbedModalProps) => {
                     )}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <IconButton
-                        onClick={() => handleAddItem(item.processor_name, index)}
+                        onClick={() =>
+                          handleAddItem(item.processor_name, index)
+                        }
                         sx={{ alignSelf: 'flex-end' }}
                       >
                         <AddIcon />

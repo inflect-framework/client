@@ -1,20 +1,14 @@
 import axios from 'axios';
 
-interface PostConnectionResult {
-  sourceTopic: string;
-  targetTopic: string;
-  transformation: string;
-}
-
-export const postConnection = async (
+export const postPipeline = async (
   sourceTopic: string,
   targetTopic: string,
-  transformation: string
+  processor: string
 ) => {
   const body = {
     sourceTopic,
     targetTopic,
-    transformation,
+    processor,
   };
 
   try {

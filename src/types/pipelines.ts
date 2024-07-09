@@ -1,4 +1,4 @@
-export interface Connection {
+export interface Pipeline {
   id: number;
   source_topic: string;
   target_topic: string;
@@ -6,4 +6,4 @@ export interface Connection {
   active_state: boolean;
 }
 
-export type ConnectionTuple = [string, string, string, boolean, number];
+export type PipelineTuple = [string, string, string, boolean, number];

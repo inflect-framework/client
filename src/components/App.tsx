@@ -42,10 +42,9 @@ import { styled, ThemeProvider, createTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { lightTheme, darkTheme } from './theme';
 import { getPipelines } from '../utils/getEntities';
-import { putConnection } from '../utils/putConnections';
+import { putPipeline } from '../utils/putPipelines';
 import TabbedModal from './TabbedModal';
-import AddConnection from './AddConnection';
-import { Connection, ConnectionTuple } from '../types/connection';
+import { Pipeline, PipelineTuple } from '../types/pipelines';
 
 const drawerWidth = 240;
 
@@ -122,24 +121,22 @@ function App() {
   }, [prefersDarkMode]);
 
   const [open, setOpen] = useState(true);
-  const [connections, setConnections] = useState<Connection[]>([]);
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [modalDisplayed, setModalDisplayed] = useState(false);
-  const [selectedConnection, setSelectedConnection] =
-    useState<ConnectionTuple | null>(null);
-  const [connectionAlterations, setConnectionAlterations] = useState(0);
-  const [mainContent, setMainContent] = useState('connections');
+  const [selectedPipeline, setSelectedPipeline] =
+    useState<PipelineTuple | null>(null);
+  const [pipelineAlterations, setPipelineAlterations] = useState(0);
+  const [mainContent, setMainContent] = useState('pipelines');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogConnectionId, setDialogConnectionId] = useState<number | null>(
-    null
-  );
+  const [dialogPipelineId, setDialogPipelineID] = useState<number | null>(null);
   const [dialogActiveState, setDialogActiveState] = useState<boolean | null>(
     null
   );
   const [loading, setLoading] = useState(true);
 
-  const fetchConnections = async () => {
+  const fetchPipelines = async () => {
     try {
       const rows = await getPipelines();
       return rows;
@@ -149,23 +146,23 @@ function App() {
     }
   };
 
-  const cachedConnections = useMemo(() => {
-    return fetchConnections();
-  }, [connectionAlterations]);
+  const cachedPipelines = useMemo(() => {
+    return fetchPipelines();
+  }, [pipelineAlterations]);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const rows = await cachedConnections;
-      setConnections(rows);
+      const rows = await cachedPipelines;
+      setPipelines(rows);
       setLoading(false);
     };
 
     fetchData();
-  }, [cachedConnections]);
+  }, [cachedPipelines]);
 
-  const toggleModal = (connection: Connection) => {
-    setSelectedConnection(Object.values(connection) as ConnectionTuple);
+  const toggleModal = (pipeline: Pipeline) => {
+    setSelectedPipeline(Object.values(pipeline) as PipelineTuple);
     setModalDisplayed((prev) => !prev);
   };
 
@@ -180,30 +177,26 @@ function App() {
     setPage(0);
   };
 
-  const pauseConnection = (connectionId: number, activeState: boolean) => {
+  const pausePipeline = (pipelineID: number, activeState: boolean) => {
     const request = async () => {
-      const result = await putConnection(connectionId, !activeState);
-      setConnectionAlterations((prev) => prev + 1);
+      const result = await putPipeline(pipelineID, !activeState);
+      setPipelineAlterations((prev) => prev + 1);
       return result;
     };
 
     request();
   };
 
-  const showConfirmPause = (connectionId: number, activeState: boolean) => {
-    setDialogConnectionId(connectionId);
+  const showConfirmPause = (pipelineID: number, activeState: boolean) => {
+    setDialogPipelineID(pipelineID);
     setDialogActiveState(activeState);
     setDialogOpen(true);
   };
 
   const handleDialogClose = (confirmed: boolean) => {
     setDialogOpen(false);
-    if (
-      confirmed &&
-      dialogConnectionId !== null &&
-      dialogActiveState !== null
-    ) {
-      pauseConnection(dialogConnectionId, dialogActiveState);
+    if (confirmed && dialogPipelineId !== null && dialogActiveState !== null) {
+      pausePipeline(dialogPipelineId, dialogActiveState);
     }
   };
 
@@ -211,9 +204,9 @@ function App() {
     setDarkMode(!darkMode);
   };
 
-  const handleAddConnection = () => {
+  const handleAddPipeline = () => {
     setModalDisplayed(true);
-    setSelectedConnection(null);
+    setSelectedPipeline(null);
   };
 
   return (
@@ -232,7 +225,7 @@ function App() {
               <MenuIcon />
             </IconButton>
             <Typography variant='h6' noWrap component='div'>
-              Connections
+              Pipelines
             </Typography>
             <FormControlLabel
               control={
@@ -273,12 +266,12 @@ function App() {
           </DrawerHeader>
           <Divider />
           <List>
-            {['Connections', 'Add New Pipeline'].map((text, index) => (
+            {['Pipelines', 'Add New Pipeline'].map((text, index) => (
               <DrawerButton
                 key={text}
                 onClick={
                   text === 'Add New Pipeline'
-                    ? handleAddConnection
+                    ? handleAddPipeline
                     : () => setMainContent(text.toLowerCase().replace(' ', ''))
                 }
               >
@@ -290,7 +283,7 @@ function App() {
 
         <Main open={open}>
           <DrawerHeader />
-          {mainContent === 'connections' ? (
+          {mainContent === 'pipelines' ? (
             <TableContainer
               component={Paper}
               sx={{ backgroundColor: theme.palette.background.paper }}
@@ -308,7 +301,7 @@ function App() {
                 </Box>
               ) : (
                 <>
-                  <Table aria-label='connections table'>
+                  <Table aria-label='pipelines table'>
                     <TableHead>
                       <TableRow>
                         <TableCell>Source Topic</TableCell>
@@ -318,38 +311,38 @@ function App() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {connections
+                      {pipelines
                         .slice(
                           page * rowsPerPage,
                           page * rowsPerPage + rowsPerPage
                         )
-                        .map((connection: Connection) => (
-                          <TableRow key={connection.id}>
+                        .map((pipeline: Pipeline) => (
+                          <TableRow key={pipeline.id}>
                             <TableCell>
-                              <a onClick={() => toggleModal(connection)}>
-                                {connection.source_topic}
+                              <a onClick={() => toggleModal(pipeline)}>
+                                {pipeline.source_topic}
                               </a>
                             </TableCell>
                             <TableCell>
-                              <a onClick={() => toggleModal(connection)}>
-                                {connection.target_topic}
+                              <a onClick={() => toggleModal(pipeline)}>
+                                {pipeline.target_topic}
                               </a>
                             </TableCell>
                             <TableCell>
-                              <a onClick={() => toggleModal(connection)}>
-                                {connection.transformation_name}
+                              <a onClick={() => toggleModal(pipeline)}>
+                                {pipeline.transformation_name}
                               </a>
                             </TableCell>
                             <TableCell>
                               <a
                                 onClick={() =>
                                   showConfirmPause(
-                                    connection.id,
-                                    connection.active_state
+                                    pipeline.id,
+                                    pipeline.active_state
                                   )
                                 }
                               >
-                                {connection.active_state ? (
+                                {pipeline.active_state ? (
                                   <PauseIcon />
                                 ) : (
                                   <PlayArrowIcon />
@@ -363,7 +356,7 @@ function App() {
                   <TablePagination
                     rowsPerPageOptions={[10, 25, 50]}
                     component='div'
-                    count={connections.length}
+                    count={pipelines.length}
                     rowsPerPage={rowsPerPage}
                     page={page}
                     onPageChange={handleChangePage}
@@ -374,14 +367,14 @@ function App() {
               )}
             </TableContainer>
           ) : (
-            <AddConnection connections={connections} />
+            <AddPipeline pipelines={pipelines} />
           )}
         </Main>
 
         <TabbedModal
           open={modalDisplayed}
           onClose={() => setModalDisplayed(false)}
-          connection={selectedConnection}
+          pipeline={selectedPipeline}
         />
 
         <Dialog open={dialogOpen} onClose={() => handleDialogClose(false)}>
@@ -390,7 +383,7 @@ function App() {
             <DialogContentText>
               {`Are you sure you want to ${
                 dialogActiveState ? 'pause' : 'restart'
-              } connection ${dialogConnectionId}?`}
+              } pipeline ${dialogPipelineId}?`}
             </DialogContentText>
           </DialogContent>
           <DialogActions>

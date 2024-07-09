@@ -1,6 +1,6 @@
-import { postConnection } from '../utils/postConnection';
+import { postPipeline } from '../utils/postPipeline';
 
-const AddConnection = ({ connections }) => {
+const AddPipeline = ({ pipelines }) => {
   const handleSubmit = (event) => {
     event.preventDefault();
     const sourceTopic = event.target.source_topic.value;
@@ -8,22 +8,22 @@ const AddConnection = ({ connections }) => {
     const transformation = event.target.transformation.value;
 
     const handleRequest = async () => {
-      postConnection(sourceTopic, targetTopic, transformation);
+      postPipeline(sourceTopic, targetTopic, transformation);
     };
 
     handleRequest();
   };
 
   return (
-    <div className='add-connection-form'>
-      <h1>Add Connection</h1>
+    <div className='add-pipeline-form'>
+      <h1>Add Pipeline</h1>
       <form onSubmit={handleSubmit}>
         <label htmlFor='source_topic'>Source Topic:</label>
         <select name='source_topic' id='source_topic'>
           <option value='source_topic' id='source_topic'>
             Select a source topic
           </option>
-          {connections.map(({ source_topic }) => (
+          {pipelines.map(({ source_topic }) => (
             <option key={source_topic} value={source_topic} id='source_topic'>
               {source_topic}
             </option>
@@ -34,7 +34,7 @@ const AddConnection = ({ connections }) => {
           <option value='target_topic' id='target_topic'>
             Select a target topic
           </option>
-          {connections.map(({ target_topic }) => (
+          {pipelines.map(({ target_topic }) => (
             <option key={target_topic} value={target_topic} id='target_topic'>
               {target_topic}
             </option>
@@ -45,7 +45,7 @@ const AddConnection = ({ connections }) => {
           <option value='capitalize' id='transformation'>
             Select a transformation
           </option>
-          {connections.map(({ transformation_name }) => (
+          {pipelines.map(({ transformation_name }) => (
             <option
               key={transformation_name}
               value={transformation_name}
@@ -55,10 +55,10 @@ const AddConnection = ({ connections }) => {
             </option>
           ))}
         </select>
-        <button type='submit'>Add Connection</button>
+        <button type='submit'>Add Pipeline</button>
       </form>
     </div>
   );
 };
 
-export default AddConnection;
+export default AddPipeline;
