@@ -7,3 +7,18 @@ export interface Pipeline {
 }
 
 export type PipelineTuple = [string, string, string, boolean, number];
+
+export interface FrontendPipeline {
+  subscribeTopic: string;
+  publishTopic: string;
+  incomingSchema: string;
+  outgoingSchema: {
+    value: string;
+    redirectTopic: string;
+  };
+  processes: {
+    type: string;
+    value: string;
+    redirectTopic?: string;
+  }[];
+}
