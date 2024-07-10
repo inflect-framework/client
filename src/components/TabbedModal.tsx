@@ -23,14 +23,15 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import Editor from '@monaco-editor/react';
-import Select from 'react-select';
+import Select, { ActionMeta, MultiValue, SingleValue } from 'react-select';
 import { getCustomStyles } from '../utils/getCustomStyles';
 import { SelectedOption } from '../types/SelectedOption';
-import { Process } from '../types/process';
+import { Processor } from '../types/processor';
 import { Schema, SchemaFormat } from '../types/schema';
 import { getProcessors, getTopicsAndSchemas } from '../utils/getEntities';
 import { postTestEvent } from '../utils/postTestEvent';
 import { FrontendPipeline, PipelineStep } from '../types/pipelines';
+import { v4 as uuidv4 } from 'uuid';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -78,7 +79,9 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
   // Select Options
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [topics, setTopics] = useState<string[]>([]);
-  const [processorOptions, setProcessorOptions] = useState<Process[]>([]);
+  const [processorOptions, setProcessorOptions] = useState<Processor[]>([]);
+  const [displayedProcessorSelectOptions, setdisplayedProcessorSelectOptions] =
+    useState<[] | { id: string; is_filter: boolean }[]>([]);
 
   // Pipeline Creation/Update
   const [newPipelineName, setNewPipelineName] = useState('');
@@ -87,8 +90,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
   const [schemaRedirectTopic, setSchemaRedirectTopic] = useState<string | null>(
     null
   );
-  const [displayedSteps, setdisplayedSteps] = useState<[] | PipelineStep[]>([]);
-
+  const [steps, setSteps] = useState<[] | Processor[]>([]);
   const [sourceTopic, setsourceTopic] = useState<string | null>(null);
   const [targetTopic, settargetTopic] = useState<string | null>(null);
   const [userCreatedPipeline, setUserCreatedPipeline] =
@@ -108,15 +110,13 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
   const loadTopicsAndSchemas = () => {
     const request = async () => {
       const result = await getTopicsAndSchemas();
-      console.log('Topics', result.topics);
-      console.log('Schemas', result.schemas);
       setSchemas(result.schemas);
       setTopics(result.topics);
     };
     request();
   };
 
-  const loadProcesses = () => {
+  const loadProcessors = () => {
     const request = async () => {
       const request = await getProcessors();
       setProcessorOptions(request);
@@ -126,12 +126,15 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
 
   useEffect(() => {
     loadTopicsAndSchemas();
-    loadProcesses();
+    loadProcessors();
   }, []);
 
   const createEditableTestEvent = () => {
     const request = async () => {
-      const result = await postTestEvent(incomingSchema, schemaType);
+      const result = await postTestEvent({
+        schema: incomingSchema as string,
+        format: selectedIncomingSchemaFormat as SchemaFormat,
+      });
       setTestEvent(JSON.stringify(result, null, 2));
     };
     request();
@@ -161,55 +164,102 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
     setSchemaRedirectTopic(null);
     setTestEvent('');
     setTestResult('');
-    setdisplayedSteps([]);
+    setdisplayedProcessorSelectOptions([]);
     setTabValue(0);
     onClose();
   };
 
-  const handleMoveUp = (index: number) => {
+  const handleMoveUp = (id: string) => {
+    const index = displayedProcessorSelectOptions.findIndex(
+      (item) => item.id === id
+    );
+    // console.log('Index:', index);
     if (index === 0) return;
-    const newProcesses = [...displayedSteps];
+    const newProcesses = [...displayedProcessorSelectOptions];
     const temp = newProcesses[index - 1];
     newProcesses[index - 1] = newProcesses[index];
     newProcesses[index] = temp;
-    console.log('New Processes:', newProcesses);
-    setdisplayedSteps(newProcesses);
+    // console.log('New Processes:', newProcesses);
+    setdisplayedProcessorSelectOptions(newProcesses);
   };
 
-  const handleMoveDown = (index: number) => {
-    if (index === displayedSteps.length - 1) return;
-    const newProcesses = [...displayedSteps];
+  const handleMoveDown = (id: string) => {
+    const index = displayedProcessorSelectOptions.findIndex(
+      (item) => item.id === id
+    );
+    if (index === displayedProcessorSelectOptions.length - 1) return;
+    const newProcesses = [...displayedProcessorSelectOptions];
     const temp = newProcesses[index + 1];
     newProcesses[index + 1] = newProcesses[index];
     newProcesses[index] = temp;
-    console.log('New Processes:', newProcesses);
-    setdisplayedSteps(newProcesses);
+    // console.log('New Processes:', newProcesses);
+    setdisplayedProcessorSelectOptions(newProcesses);
   };
 
-  const handleAddItem = (type: string, index: number) => {
-    const newdisplayedSteps = [...displayedSteps];
-    newdisplayedSteps.splice(index + 1, 0, {
-      id: processorOptions.find((p) => p.processor_name === type)?.id as number,
-      processor_name: type,
+  const handleDisplayNewProcessorSelect = (type: string, index: number) => {
+    const newProcessorSelectOptions = [...displayedProcessorSelectOptions];
+    const newProcessor = {
+      id: uuidv4(),
       is_filter: type === 'filter',
-    });
-    setdisplayedSteps(newdisplayedSteps);
+    };
+
+    newProcessorSelectOptions.splice(index + 1, 0, newProcessor);
+    setdisplayedProcessorSelectOptions(newProcessorSelectOptions);
   };
 
-  const handleDeleteItem = (id: number | string) => {
-    setdisplayedSteps(displayedSteps.filter((item) => item.id !== id));
+  const handleRemoveProcessorSelect = (id: number | string) => {
+    // console.log('Removing Processor with ID:', id, typeof id);
+    // console.log('Current steps:', steps);
+    // console.log('Current Processors:', displayedProcessorSelectOptions);
+    // console.log(
+    //   'Current Processor exists?',
+    //   displayedProcessorSelectOptions.some((item) => item.id === id)
+    // );
+    const index = displayedProcessorSelectOptions.findIndex(
+      (item) => item.id === id
+    );
+    const newSelectOptions = displayedProcessorSelectOptions
+      .slice(0, index)
+      .concat(displayedProcessorSelectOptions.slice(index + 1));
+
+    // console.log('New Processors:', newSelectOptions);
+    setdisplayedProcessorSelectOptions(newSelectOptions);
+    handleRemovePipelineStep(index);
   };
 
-  const handleAddStep = (selectedOption: SelectedOption) => {
-    const newdisplayedSteps = [...displayedSteps];
-    console.log('Selected Option:', selectedOption);
-    console.log('New displayedSteps:', newdisplayedSteps);
-    setdisplayedSteps(newdisplayedSteps);
+  const handleRemovePipelineStep = (index: number) => {
+    const newSteps = steps.slice(0, index).concat(steps.slice(index + 1));
+    // console.log('Previous steps:', steps);
+    // console.log('New Steps:', newSteps);
+    setSteps(newSteps);
   };
 
-  const filterTopics: String[] = [];
-  const setFilterTopics = (newFilterTopics: string[]) => {
-    filterTopics.push(...newFilterTopics);
+  const handleAddPipelineStep = (
+    selectedOption: SingleValue<SelectedOption> | MultiValue<SelectedOption>,
+    _: ActionMeta<SelectedOption>,
+    index: number
+  ) => {
+    // console.log('Adding Pipeline Step', selectedOption);
+    // console.log('Index:', index);
+    // console.log('Step to change', steps.at(index));
+    if (!selectedOption) return;
+
+    const processor = processorOptions.find(
+      (p) => p.processor_name === (selectedOption as SelectedOption).value
+    );
+    if (!processor) return;
+    let changeStep = steps.at(index);
+    if (changeStep) {
+      // console.log('New Step:', processor);
+      const newSteps = steps
+        .slice(0, index)
+        .concat([processor])
+        .concat(steps.slice(index + 1));
+
+      setSteps(newSteps);
+    } else {
+      setSteps([...steps, processor]);
+    }
   };
 
   const createPipelineObject = (): FrontendPipeline => {
@@ -222,23 +272,18 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
         name: outgoingSchema,
         redirectTopic: schemaRedirectTopic,
       },
-      steps: displayedSteps.map((step) => ({
-        id: step.id,
-        processor_name: step.processor_name,
-        is_filter: step.is_filter,
-      })),
+      steps,
     };
   };
 
   const handleCreatePipeline = () => {
-    console.log('Creating Pipeline');
     const pipeline = createPipelineObject();
     setUserCreatedPipeline(pipeline);
-    console.log('The pipeline looks like:', pipeline);
     console.log(
       'React batches updates therefore the logging statement for the state is:',
       userCreatedPipeline
     );
+    console.log('The pipeline actuallylooks like:', pipeline);
   };
 
   const resetDialogs = () => {
@@ -295,8 +340,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
           >
             <Tab label='Design' {...a11yProps(0)} />
             <Tab label='Test' {...a11yProps(1)} />
-            <Tab label='Finalize' {...a11yProps(2)} />
-            <Tab label='Versioning and Evolution' {...a11yProps(3)} />
+            <Tab label='Versioning and Evolution' {...a11yProps(2)} />
           </Tabs>
           <TabPanel value={tabValue} index={0}>
             <Box
@@ -324,12 +368,17 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                   <Typography>Incoming Schema</Typography>
                   <Select
                     options={schemas.map((schema) => ({
-                      value: schema,
-                      label: schema,
+                      value: String(schema),
+                      label: String(schema),
                     }))}
                     isClearable
                     styles={getCustomStyles(mode)}
-                    onChange={(selectedOption) =>
+                    onChange={(
+                      selectedOption:
+                        | SingleValue<SelectedOption>
+                        | MultiValue<SelectedOption>,
+                      actionMeta: ActionMeta<SelectedOption>
+                    ) =>
                       setIncomingSchema(
                         selectedOption
                           ? (selectedOption as SelectedOption).value
@@ -357,7 +406,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                 </Box>
               </Box>{' '}
               <Box>
-                <Typography>Subscribe Topic</Typography>
+                <Typography>Source Topic</Typography>
                 <Select
                   options={topics.map((topic) => ({
                     value: topic,
@@ -375,7 +424,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                 />
               </Box>{' '}
               <Box>
-                <Typography>Publish Topic</Typography>
+                <Typography>Target Topic</Typography>
                 <Select
                   options={topics.map((topic) => ({
                     value: topic,
@@ -397,8 +446,8 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                   <Typography>Outgoing Schema</Typography>
                   <Select
                     options={schemas.map((schema) => ({
-                      value: schema,
-                      label: schema,
+                      value: String(schema),
+                      label: String(schema),
                     }))}
                     isClearable
                     styles={getCustomStyles(mode)}
@@ -432,9 +481,9 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
               </Box>
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {displayedSteps.map((item, index) => (
+                {displayedProcessorSelectOptions.map((item, index) => (
                   <Box
-                    key={index.toString() + '-' + item.processor_name}
+                    key={item.id}
                     sx={{
                       display: 'flex',
                       alignItems: 'flex-end',
@@ -446,7 +495,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                         <Box sx={{ flex: 1 }}>
                           <Typography>
                             Filter{' '}
-                            {displayedSteps
+                            {displayedProcessorSelectOptions
                               .filter((p) => p.is_filter)
                               .indexOf(item) + 1}
                           </Typography>
@@ -457,7 +506,13 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                                 value: processor.processor_name,
                                 label: processor.processor_name,
                               }))}
-                            onChange={handleAddStep}
+                            onChange={(selectedOption, actionMeta) =>
+                              handleAddPipelineStep(
+                                selectedOption,
+                                actionMeta,
+                                index
+                              )
+                            }
                             isClearable
                             styles={getCustomStyles(mode)}
                           />
@@ -479,7 +534,7 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                       <Box sx={{ flex: 1 }}>
                         <Typography>
                           Transformation{' '}
-                          {displayedSteps
+                          {displayedProcessorSelectOptions
                             .filter((p) => !p.is_filter)
                             .indexOf(item) + 1}
                         </Typography>
@@ -490,7 +545,13 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                               value: processor.processor_name,
                               label: processor.processor_name,
                             }))}
-                          onChange={handleAddStep}
+                          onChange={(selectedOption, actionMeta) =>
+                            handleAddPipelineStep(
+                              selectedOption,
+                              actionMeta,
+                              index
+                            )
+                          }
                           isClearable
                           styles={getCustomStyles(mode)}
                         />
@@ -499,19 +560,24 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <IconButton
                         onClick={() =>
-                          handleAddItem(item.processor_name, index)
+                          handleDisplayNewProcessorSelect(
+                            item.is_filter ? 'filter' : 'transformation',
+                            index
+                          )
                         }
                         sx={{ alignSelf: 'flex-end' }}
                       >
                         <AddIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDeleteItem(item.id)}>
+                      <IconButton
+                        onClick={() => handleRemoveProcessorSelect(item.id)}
+                      >
                         <DeleteIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleMoveUp(index)}>
+                      <IconButton onClick={() => handleMoveUp(item.id)}>
                         <ArrowUpwardIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleMoveDown(index)}>
+                      <IconButton onClick={() => handleMoveDown(item.id)}>
                         <ArrowDownwardIcon />
                       </IconButton>
                     </Box>
@@ -521,7 +587,10 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button
                   onClick={() =>
-                    handleAddItem('transformation', displayedSteps.length - 1)
+                    handleDisplayNewProcessorSelect(
+                      'transformation',
+                      displayedProcessorSelectOptions.length
+                    )
                   }
                   variant='contained'
                   startIcon={<AddIcon />}
@@ -531,7 +600,10 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
                 </Button>
                 <Button
                   onClick={() =>
-                    handleAddItem('filter', displayedSteps.length - 1)
+                    handleDisplayNewProcessorSelect(
+                      'filter',
+                      displayedProcessorSelectOptions.length
+                    )
                   }
                   variant='contained'
                   startIcon={<AddIcon />}
@@ -638,10 +710,6 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
             </Box>
           </TabPanel>
           <TabPanel value={tabValue} index={2}>
-            {/* Render Finalize tab content here */}
-            Finalize Content
-          </TabPanel>
-          <TabPanel value={tabValue} index={3}>
             {/* Render Versioning and Evolution tab content here */}
             Versioning and Evolution Content
           </TabPanel>

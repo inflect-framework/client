@@ -1,13 +1,13 @@
 import axios from 'axios';
 import { Schema, SchemaFormat } from '../types/schema';
 
-export const postTestEvent = async (
-  schema: Schema,
-  schemaType: SchemaFormat = 'avro'
-): Promise<JSON> => {
+export const postTestEvent = async ({
+  schema,
+  format,
+}: Schema): Promise<JSON> => {
   try {
     const result = await axios.post('http://localhost:3000/test_event', {
-      format: schemaType,
+      format,
       // schema: schema.schema,
     });
     return result.data;
