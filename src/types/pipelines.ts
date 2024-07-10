@@ -1,3 +1,5 @@
+import { Processor } from './processor';
+
 export interface Pipeline {
   id: number;
   source_topic: string;
@@ -8,10 +10,7 @@ export interface Pipeline {
 
 export type PipelineTuple = [string, string, string, boolean, number];
 
-export interface PipelineStep {
-  id: number;
-  processor_name: string;
-  is_filter: boolean;
+export interface PipelineStep extends Processor {
   redirect_topic?: string;
 }
 

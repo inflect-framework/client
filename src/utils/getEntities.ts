@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Pipeline } from '../types/pipelines';
 import { Schema } from '../types/schema';
-import { Process } from '../types/process';
+import { Process } from '../types/processor';
 
 export const getPipelines = async (): Promise<Pipeline[]> => {
   try {
