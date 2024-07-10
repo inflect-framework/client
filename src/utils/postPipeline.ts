@@ -1,25 +1,13 @@
 import axios from 'axios';
+import {FrontendPipeline} from '../types/pipelines'
 
-export const postPipeline = async (
-  sourceTopic: string,
-  targetTopic: string,
-  processor: string
+export const postPipeline = async (pipeline: FrontendPipeline
 ) => {
-  const body = {
-    sourceTopic,
-    targetTopic,
-    processor,
-  };
 
   try {
     const response = await axios.post(
-      'http://localhost:3000/create_transformation',
-      body,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
+      'http://localhost:3000/create_pipeline',
+      pipeline
     );
     return response;
   } catch (error) {

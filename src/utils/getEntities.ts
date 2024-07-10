@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Pipeline } from '../types/pipelines';
 import { Schema } from '../types/schema';
-import { Process } from '../types/processor';
+import { Processor } from '../types/processor';
 
 export const getPipelines = async (): Promise<Pipeline[]> => {
   try {
@@ -27,7 +27,7 @@ export const getTopicsAndSchemas = async (): Promise<TopicsSchemas> => {
   }
 };
 
-export const getProcessors = async (): Promise<Process[]> => {
+export const getProcessors = async (): Promise<Processor[]> => {
   try {
     const result = await axios.get('http://localhost:3000/processors');
     return result.data;

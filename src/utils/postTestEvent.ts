@@ -8,7 +8,7 @@ export const postTestEvent = async ({
   try {
     const result = await axios.post('http://localhost:3000/test_event', {
       format,
-      // schema: schema.schema,
+      schema
     });
     return result.data;
   } catch (error) {

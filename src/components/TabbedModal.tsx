@@ -32,6 +32,8 @@ import { getProcessors, getTopicsAndSchemas } from '../utils/getEntities';
 import { postTestEvent } from '../utils/postTestEvent';
 import { FrontendPipeline, PipelineStep } from '../types/pipelines';
 import { v4 as uuidv4 } from 'uuid';
+import { postPipeline } from '../utils/postPipeline';
+import { getTestResults } from '../utils/getTestResults'
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -144,18 +146,29 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
     setTabValue(newValue);
   };
 
-  const handleTest = async () => {
-    const result = await simulateBackendProcessing(testEvent);
-    setTestResult(result as string);
+  const handleTest = () => {
+    // const result = await simulateBackendProcessing(testEvent);
+    const request = async() => {
+      return await getTestResults(selectedIncomingSchemaFormat, testEvent, steps);
+    }
+    
+    
+    const result = request().then(res => {
+      console.log('result!!!!', res);
+      setTestResult(JSON.stringify(res.transformedMessage, null, 2));
+    });
+    console.log('Attempt to test result:', result)
+    // setTestResult(result);
+    return result
   };
 
-  const simulateBackendProcessing = (event: string) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(`Processed event: ${event}`);
-      }, 1000);
-    });
-  };
+  // const simulateBackendProcessing = (event: string) => {
+  //   return new Promise((resolve) => {
+  //     setTimeout(() => {
+  //       resolve(`Processed event: ${event}`);
+  //     }, 1000);
+  //   });
+  // };
 
   const handleClose = () => {
     setNewPipelineName('');
@@ -275,6 +288,17 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
       steps,
     };
   };
+
+  const pipelineServerPost = () => {
+    const request = async () => {
+      if (!userCreatedPipeline) return;
+      return await postPipeline(userCreatedPipeline)
+    }
+    
+    const result = request();
+    console.log(result)
+    return result
+  }
 
   const handleCreatePipeline = () => {
     const pipeline = createPipelineObject();
@@ -614,6 +638,14 @@ const TabbedModal = ({ open, onClose, pipeline }: TabbedModalProps) => {
               </Box>
               <Button
                 onClick={handleCreatePipeline}
+                variant='contained'
+                color='secondary'
+                sx={{ width: 'fit-content', alignSelf: 'flex-start', mt: 2 }}
+              >
+                Update Pipeline
+              </Button>
+              <Button
+                onClick={() => pipelineServerPost()}
                 variant='contained'
                 color='secondary'
                 sx={{ width: 'fit-content', alignSelf: 'flex-start', mt: 2 }}
