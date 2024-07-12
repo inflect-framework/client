@@ -40,11 +40,12 @@ import {
 } from '@mui/icons-material';
 import { styled, ThemeProvider, createTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { lightTheme, darkTheme } from './theme';
+import { lightTheme, darkTheme } from '../utils/theme';
 import { getPipelines } from '../utils/getEntities';
 import { putPipeline } from '../utils/putPipelines';
 import TabbedModal from './TabbedModal';
 import { Pipeline, PipelineTuple } from '../types/pipelines';
+import AddPipeline from './AddPipeline';
 
 const drawerWidth = 240;
 
