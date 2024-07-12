@@ -45,7 +45,6 @@ import { getPipelines } from '../utils/getEntities';
 import { putPipeline } from '../utils/putPipelines';
 import TabbedModal from './TabbedModal';
 import { Pipeline, PipelineTuple } from '../types/pipelines';
-import AddPipeline from './AddPipeline';
 
 const drawerWidth = 240;
 
@@ -284,92 +283,88 @@ function App() {
 
         <Main open={open}>
           <DrawerHeader />
-          {mainContent === 'pipelines' ? (
-            <TableContainer
-              component={Paper}
-              sx={{ backgroundColor: theme.palette.background.paper }}
-            >
-              {loading ? (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    minHeight: '300px',
-                  }}
-                >
-                  <CircularProgress />
-                </Box>
-              ) : (
-                <>
-                  <Table aria-label='pipelines table'>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Source Topic</TableCell>
-                        <TableCell>Target Topic</TableCell>
-                        <TableCell>Transformation Name</TableCell>
-                        <TableCell>Pause</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {pipelines
-                        .slice(
-                          page * rowsPerPage,
-                          page * rowsPerPage + rowsPerPage
-                        )
-                        .map((pipeline: Pipeline) => (
-                          <TableRow key={pipeline.id}>
-                            <TableCell>
-                              <a onClick={() => toggleModal(pipeline)}>
-                                {pipeline.source_topic}
-                              </a>
-                            </TableCell>
-                            <TableCell>
-                              <a onClick={() => toggleModal(pipeline)}>
-                                {pipeline.target_topic}
-                              </a>
-                            </TableCell>
-                            <TableCell>
-                              <a onClick={() => toggleModal(pipeline)}>
-                                {pipeline.transformation_name}
-                              </a>
-                            </TableCell>
-                            <TableCell>
-                              <a
-                                onClick={() =>
-                                  showConfirmPause(
-                                    pipeline.id,
-                                    pipeline.active_state
-                                  )
-                                }
-                              >
-                                {pipeline.active_state ? (
-                                  <PauseIcon />
-                                ) : (
-                                  <PlayArrowIcon />
-                                )}
-                              </a>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                  <TablePagination
-                    rowsPerPageOptions={[10, 25, 50]}
-                    component='div'
-                    count={pipelines.length}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                    sx={{ backgroundColor: theme.palette.background.paper }}
-                  />
-                </>
-              )}
-            </TableContainer>
-          ) : (
-            <AddPipeline pipelines={pipelines} />
-          )}
+          <TableContainer
+            component={Paper}
+            sx={{ backgroundColor: theme.palette.background.paper }}
+          >
+            {loading ? (
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  minHeight: '300px',
+                }}
+              >
+                <CircularProgress />
+              </Box>
+            ) : (
+              <>
+                <Table aria-label='pipelines table'>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Source Topic</TableCell>
+                      <TableCell>Target Topic</TableCell>
+                      <TableCell>Transformation Name</TableCell>
+                      <TableCell>Pause</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {pipelines
+                      .slice(
+                        page * rowsPerPage,
+                        page * rowsPerPage + rowsPerPage
+                      )
+                      .map((pipeline: Pipeline) => (
+                        <TableRow key={pipeline.id}>
+                          <TableCell>
+                            <a onClick={() => toggleModal(pipeline)}>
+                              {pipeline.source_topic}
+                            </a>
+                          </TableCell>
+                          <TableCell>
+                            <a onClick={() => toggleModal(pipeline)}>
+                              {pipeline.target_topic}
+                            </a>
+                          </TableCell>
+                          <TableCell>
+                            <a onClick={() => toggleModal(pipeline)}>
+                              {pipeline.transformation_name}
+                            </a>
+                          </TableCell>
+                          <TableCell>
+                            <a
+                              onClick={() =>
+                                showConfirmPause(
+                                  pipeline.id,
+                                  pipeline.active_state
+                                )
+                              }
+                            >
+                              {pipeline.active_state ? (
+                                <PauseIcon />
+                              ) : (
+                                <PlayArrowIcon />
+                              )}
+                            </a>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+                <TablePagination
+                  rowsPerPageOptions={[10, 25, 50]}
+                  component='div'
+                  count={pipelines.length}
+                  rowsPerPage={rowsPerPage}
+                  page={page}
+                  onPageChange={handleChangePage}
+                  onRowsPerPageChange={handleChangeRowsPerPage}
+                  sx={{ backgroundColor: theme.palette.background.paper }}
+                />
+              </>
+            )}
+          </TableContainer>
         </Main>
 
         <TabbedModal
