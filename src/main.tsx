@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './components/App';
 import { ThemeProvider, CssBaseline, useMediaQuery } from '@mui/material';
-import { darkTheme, lightTheme } from './components/theme';
+import { darkTheme, lightTheme } from './utils/theme';
 
 function Main() {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
