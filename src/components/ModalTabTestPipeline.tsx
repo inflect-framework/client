@@ -1,21 +1,21 @@
-import TabPanel from './TabPanel';
-import { Box, Typography, Button, TextField } from '@mui/material';
-import { getCustomStyles } from '../utils/getCustomStyles';
-import Select from 'react-select';
-import { SelectedOption } from '../types/SelectedOption';
-import { Processor } from '../types/processor';
-import { SchemaFormat } from '../types/schema';
-import React from 'react';
-import { getTestResults } from '../utils/getTestResults';
-import Editor from '@monaco-editor/react';
-import { postTestEvent } from '../utils/postTestEvent';
+import TabPanel from "./TabPanel";
+import { Box, Typography, Button, TextField } from "@mui/material";
+import { getCustomStyles } from "../utils/getCustomStyles";
+import Select from "react-select";
+import { SelectedOption } from "../types/SelectedOption";
+import { Processor } from "../types/processor";
+import { SchemaFormat } from "../types/schema";
+import React from "react";
+import { getTestResults } from "../utils/getTestResults";
+import Editor from "@monaco-editor/react";
+import { postTestEvent } from "../utils/postTestEvent";
 
 interface ModalTabTestPipelineProps {
   tabValue: number;
   incomingSchema: string | null;
   schemaType: SchemaFormat;
   setSchemaType: React.Dispatch<React.SetStateAction<SchemaFormat>>;
-  mode: 'light' | 'dark';
+  mode: "light" | "dark";
   selectedIncomingSchemaFormat: string | null;
   testEvent: string;
   setTestEvent: React.Dispatch<React.SetStateAction<string>>;
@@ -46,12 +46,22 @@ const ModalTabTestPipeline = ({
       );
     };
 
-    const result = request().then((res) => {
-      // console.log('result!!!!', res);
-      setTestResult(JSON.stringify(res.transformedMessage, null, 2));
-    });
-    // console.log('Attempt to test result:', result);
-    // setTestResult(result);
+    const result = request()
+      .then((result) => {
+        if (!result) {
+          console.error(
+            "No result returned from test pipeline request",
+            "Request body:",
+            { selectedIncomingSchemaFormat, testEvent, steps }
+          );
+          return;
+        }
+        setTestResult(JSON.stringify(result.transformedMessage, null, 2));
+      })
+      .catch((error) => {
+        console.error("Error attempting to test generated event:", error);
+      });
+
     return result;
   };
 
@@ -68,14 +78,14 @@ const ModalTabTestPipeline = ({
 
   return (
     <TabPanel value={tabValue} index={1}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Box sx={{ width: '200px' }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Box sx={{ width: "200px" }}>
           <Typography>Schema Type</Typography>
           <Select
             options={[
-              { value: 'json', label: 'JSON' },
-              { value: 'avro', label: 'Avro' },
-              { value: 'protobuf', label: 'Protobuf' },
+              { value: "json", label: "JSON" },
+              { value: "avro", label: "Avro" },
+              { value: "protobuf", label: "Protobuf" },
             ]}
             value={{ value: schemaType, label: schemaType.toUpperCase() }}
             onChange={(selectedOption) =>
@@ -89,53 +99,53 @@ const ModalTabTestPipeline = ({
         <Box>
           <Button
             onClick={createEditableTestEvent}
-            variant='contained'
-            color='primary'
+            variant="contained"
+            color="primary"
             sx={{ mr: 2 }}
           >
             Generate Test Event
           </Button>
-          <Button onClick={handleTest} variant='contained' color='secondary'>
+          <Button onClick={handleTest} variant="contained" color="secondary">
             Test
           </Button>
         </Box>
-        <Box sx={{ display: 'flex', gap: 2, height: '450px' }}>
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <Typography variant='subtitle1'>
+        <Box sx={{ display: "flex", gap: 2, height: "450px" }}>
+          <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <Typography variant="subtitle1">
               Generated Editable Test Event:
             </Typography>
             <Box sx={{ flex: 1 }}>
               <Editor
-                height='100%'
-                language='json'
+                height="100%"
+                language="json"
                 value={testEvent}
-                onChange={(value) => setTestEvent(value || '')}
+                onChange={(value) => setTestEvent(value || "")}
               />
             </Box>
           </Box>
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <Typography variant='subtitle1'>Result:</Typography>
+          <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <Typography variant="subtitle1">Result:</Typography>
             <TextField
               multiline
               fullWidth
               rows={10}
-              variant='outlined'
+              variant="outlined"
               value={testResult}
               InputProps={{
                 readOnly: true,
-                sx: { height: '100%' },
+                sx: { height: "100%" },
               }}
               sx={{ flex: 1 }}
             />
           </Box>
           <Box
             sx={{
-              width: '200px',
-              display: 'flex',
-              flexDirection: 'column',
+              width: "200px",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            <Typography variant='subtitle1'>
+            <Typography variant="subtitle1">
               Transformations and Filters:
             </Typography>
             <Box sx={{ mt: 2, flex: 1 }}>
@@ -143,7 +153,7 @@ const ModalTabTestPipeline = ({
               <Typography>Transformation 1</Typography>
               <Typography>Filter 1</Typography>
               <Typography>Transformation 2</Typography>
-              <Typography color='error'>Filter 2 (Error)</Typography>
+              <Typography color="error">Filter 2 (Error)</Typography>
               <Typography>Outgoing Schema</Typography>
             </Box>
           </Box>
