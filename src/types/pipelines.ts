@@ -1,11 +1,18 @@
-import { Processor } from './processor';
+import { Processor } from "./processor";
+
+interface Steps {
+  dlq: Array<string | null>;
+  processors: Array<number | null>;
+}
 
 export interface Pipeline {
   id: number;
+  name: string;
   source_topic: string;
   target_topic: string;
   transformation_name: string;
-  active_state: boolean;
+  steps: Steps;
+  is_active: boolean;
 }
 
 export type PipelineTuple = [string, string, string, boolean, number];
