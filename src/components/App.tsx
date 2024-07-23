@@ -30,11 +30,16 @@ import {
 import { styled, ThemeProvider, createTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { lightTheme, darkTheme } from '../utils/theme';
-import { getPipelines } from '../utils/getEntities';
-import { putPipeline } from '../utils/putPipelines';
+import {
+  getPipelines,
+  getProcessors,
+  getTopicsAndSchemas,
+} from '../utils/getEntities';
+import { putPipeline } from '../utils/putPipeline';
 import TabbedModal from './TabbedModal';
 import PipelineTable from './PipelineTable';
-import { Pipeline, PipelineTuple } from '../types/pipelines';
+import { Pipeline } from '../types/pipelines';
+import { Processor } from '../types/processor';
 
 const drawerWidth = 240;
 
@@ -100,6 +105,18 @@ const Main = styled('main', {
   backgroundColor: theme.palette.background.default,
 }));
 
+const emptyPipeline: Pipeline = {
+  id: NaN,
+  name: '',
+  source_topic: '',
+  target_topic: '',
+  incoming_schema: '',
+  outgoing_schema: '',
+  steps: { dlqs: [], processors: [] },
+  is_active: false,
+  redirect_topic: '',
+};
+
 function App() {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [darkMode, setDarkMode] = useState(prefersDarkMode);
@@ -116,7 +133,7 @@ function App() {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [modalDisplayed, setModalDisplayed] = useState(false);
   const [selectedPipeline, setSelectedPipeline] =
-    useState<PipelineTuple | null>(null);
+    useState<Pipeline>(emptyPipeline);
   const [pipelineAlterations, setPipelineAlterations] = useState(0);
   const [mainContent, setMainContent] = useState('pipelines');
   const [page, setPage] = useState(0);
@@ -126,13 +143,28 @@ function App() {
   const [dialogActiveState, setDialogActiveState] = useState<boolean | null>(
     null
   );
-  const [loading, setLoading] = useState(true);
-
+  const [tableLoading, setTableLoading] = useState(true);
+  const [rowLoading, setRowLoading] = useState<null | number>(null);
+  const [processorOptions, setProcessorOptions] = useState<Processor[]>([]);
+  const [schemas, setSchemas] = useState<string[]>([]);
+  const [topics, setTopics] = useState<string[]>([]);
   const fetchPipelines = async () => {
     try {
       const rows = await getPipelines();
-      console.log(rows);
-      return rows;
+
+      const rowsWithRedirect = rows.map((row) => {
+        const mappedRow = { ...row };
+        if (mappedRow.steps.hasOwnProperty('dlqs')) {
+          const redirect_topic = row.steps.dlqs.at(-1);
+          mappedRow.redirect_topic =
+            typeof redirect_topic === 'string' ? redirect_topic : '';
+        } else {
+          mappedRow.redirect_topic = '';
+        }
+        return mappedRow;
+      });
+
+      return rowsWithRedirect;
     } catch (error) {
       console.error(error);
       return [];
@@ -143,25 +175,54 @@ function App() {
     return fetchPipelines();
   }, [pipelineAlterations]);
 
+  const loadTopicsAndSchemas = () => {
+    const request = async () => {
+      const result = await getTopicsAndSchemas();
+      setSchemas(result.schemas);
+      setTopics(result.topics);
+    };
+    request();
+  };
+
+  const loadProcessors = () => {
+    const request = async () => {
+      const request = await getProcessors();
+      setProcessorOptions(request);
+      console.log('processors', request);
+    };
+    request();
+  };
+
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
+      setTableLoading(true);
       const rows = await cachedPipelines;
       setPipelines(rows);
-      setLoading(false);
+      setTableLoading(false);
     };
 
     fetchData();
   }, [cachedPipelines]);
 
+  useEffect(() => {
+    loadTopicsAndSchemas();
+    loadProcessors();
+  }, []);
+
   const toggleModal = (pipeline: Pipeline) => {
-    setSelectedPipeline(Object.values(pipeline) as PipelineTuple);
+    setSelectedPipeline(pipeline);
     setModalDisplayed((prev) => !prev);
   };
 
-  const pausePipeline = (pipelineID: number, activeState: boolean) => {
+  const pausePipeline = (pipelineID: number) => {
     const request = async () => {
-      const result = await putPipeline(pipelineID, !activeState);
+      setRowLoading(pipelineID);
+      const pipeline = JSON.parse(JSON.stringify(selectedPipeline));
+      pipeline.is_active = !pipeline.is_active;
+      pipeline.redirect_topic = pipeline.redirect_topic || '';
+      const result = await putPipeline(pipeline);
+      setSelectedPipeline(emptyPipeline);
+      setRowLoading(null);
       setPipelineAlterations((prev) => prev + 1);
       return result;
     };
@@ -170,6 +231,9 @@ function App() {
   };
 
   const showConfirmPause = (pipelineID: number, activeState: boolean) => {
+    const pipeline = pipelines.find((p) => p.id === pipelineID);
+    if (!pipeline) return;
+    setSelectedPipeline(pipeline);
     setDialogPipelineID(pipelineID);
     setDialogActiveState(activeState);
     setDialogOpen(true);
@@ -178,7 +242,7 @@ function App() {
   const handleDialogClose = (confirmed: boolean) => {
     setDialogOpen(false);
     if (confirmed && dialogPipelineId !== null && dialogActiveState !== null) {
-      pausePipeline(dialogPipelineId, dialogActiveState);
+      pausePipeline(dialogPipelineId);
     }
   };
 
@@ -188,7 +252,17 @@ function App() {
 
   const handleAddPipeline = () => {
     setModalDisplayed(true);
-    setSelectedPipeline(null);
+    setSelectedPipeline({
+      id: NaN,
+      name: '',
+      source_topic: '',
+      target_topic: '',
+      incoming_schema: '',
+      outgoing_schema: '',
+      steps: { dlqs: [], processors: [] },
+      is_active: false,
+      redirect_topic: '',
+    });
   };
 
   return (
@@ -265,23 +339,32 @@ function App() {
 
         <Main open={open}>
           <PipelineTable
+            setSelectedPipeline={setSelectedPipeline}
+            selectedPipeline={selectedPipeline}
             rowsPerPage={rowsPerPage}
             page={page}
             pipelines={pipelines}
-            loading={loading}
+            tableLoading={tableLoading}
+            rowLoading={rowLoading}
             theme={theme}
             open={open}
             toggleModal={toggleModal}
             showConfirmPause={showConfirmPause}
             setPage={setPage}
             setRowsPerPage={setRowsPerPage}
+            processorOptions={processorOptions}
           />
         </Main>
 
         <TabbedModal
           open={modalDisplayed}
           onClose={() => setModalDisplayed(false)}
-          pipeline={selectedPipeline}
+          selectedPipeline={selectedPipeline}
+          setSelectedPipeline={setSelectedPipeline}
+          pipelines={pipelines}
+          topics={topics}
+          schemas={schemas}
+          processorOptions={processorOptions}
         />
 
         <Dialog open={dialogOpen} onClose={() => handleDialogClose(false)}>

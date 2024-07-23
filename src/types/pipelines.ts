@@ -1,24 +1,18 @@
-import { Processor } from "./processor";
-
 interface Steps {
-  dlq: Array<string | null>;
+  dlqs: Array<string | null>;
   processors: Array<number | null>;
 }
 
 export interface Pipeline {
   id: number;
   name: string;
+  incoming_schema: string;
+  outgoing_schema: string;
   source_topic: string;
   target_topic: string;
-  transformation_name: string;
   steps: Steps;
   is_active: boolean;
-}
-
-export type PipelineTuple = [string, string, string, boolean, number];
-
-export interface PipelineStep extends Processor {
-  redirect_topic?: string;
+  redirect_topic: string;
 }
 
 export interface FrontendPipeline {
@@ -30,5 +24,5 @@ export interface FrontendPipeline {
     name: string | null;
     redirectTopic: string | null;
   };
-  steps: PipelineStep[] | [];
+  steps: Steps;
 }

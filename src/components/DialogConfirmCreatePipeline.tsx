@@ -10,13 +10,13 @@ import {
 interface DialogConfirmCreatePipelineProps {
   confirmDialogOpen: boolean;
   setConfirmDialogOpen: (open: boolean) => void;
-  handleCreatePipeline: () => void;
+  setUserConfirmation: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const DialogConfirmCreatePipeline = ({
   confirmDialogOpen,
   setConfirmDialogOpen,
-  handleCreatePipeline,
+  setUserConfirmation,
 }: DialogConfirmCreatePipelineProps) => {
   return (
     <Dialog
@@ -30,8 +30,21 @@ const DialogConfirmCreatePipeline = ({
         </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setConfirmDialogOpen(false)}>No</Button>
-        <Button onClick={handleCreatePipeline} autoFocus>
+        <Button
+          onClick={() => {
+            setUserConfirmation(false);
+            setConfirmDialogOpen(false);
+          }}
+        >
+          No
+        </Button>
+        <Button
+          onClick={() => {
+            setUserConfirmation(true);
+            setConfirmDialogOpen(false);
+          }}
+          autoFocus
+        >
           Yes
         </Button>
       </DialogActions>
