@@ -1,100 +1,197 @@
-import { createTheme } from "@mui/material/styles";
+import { createTheme } from '@mui/material/styles';
+
+const inflectGreen = '#00D1A1';
+const inflectNavy = '#0A0E1A';
 
 export const lightTheme = createTheme({
   palette: {
-    mode: "light",
+    mode: 'light',
     primary: {
-      main: "#1976d2",
+      main: inflectGreen,
     },
     secondary: {
-      main: "#dc004e",
-    },
-  },
-  typography: {
-    fontFamily: "Roboto, Arial, sans-serif",
-  },
-});
-
-export const darkTheme = createTheme({
-  palette: {
-    mode: "dark",
-    primary: {
-      main: "#90caf9",
-    },
-    secondary: {
-      main: "#f48fb1",
+      main: inflectNavy,
     },
     background: {
-      default: "#121212",
-      paper: "#1d1d1d",
+      default: '#ffffff',
+      paper: '#ffffff',
     },
     text: {
-      primary: "#ffffff",
-      secondary: "#ffffff",
+      primary: inflectNavy,
+      secondary: '#4A4E5A',
     },
   },
   typography: {
-    fontFamily: "Roboto, Arial, sans-serif",
+    fontFamily: 'Roboto, Arial, sans-serif',
   },
   components: {
     MuiSelect: {
       styleOverrides: {
         root: {
-          backgroundColor: "#1d1d1d",
-          color: "#ffffff",
+          backgroundColor: '#ffffff',
+          color: inflectNavy,
         },
         icon: {
-          color: "#ffffff",
+          color: inflectNavy,
         },
         select: {
-          backgroundColor: "#1d1d1d",
-          color: "#ffffff",
+          backgroundColor: '#ffffff',
+          color: inflectNavy,
+        },
+      },
+    },
+    MuiTableHead: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#001f58',
+          '& .MuiTableCell-head': {
+            color: '#ffffff',
+            fontWeight: 'bold',
+          },
         },
       },
     },
     MuiMenu: {
       styleOverrides: {
         paper: {
-          backgroundColor: "#1d1d1d",
-          color: "#ffffff",
+          backgroundColor: '#ffffff',
+          color: inflectNavy,
         },
       },
     },
     MuiAutocomplete: {
       styleOverrides: {
         paper: {
-          backgroundColor: "#1d1d1d",
-          color: "#ffffff",
+          backgroundColor: '#ffffff',
+          color: inflectNavy,
         },
         option: {
-          color: "#ffffff",
+          color: inflectNavy,
         },
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          "& .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#90caf9",
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: inflectGreen,
           },
-          "&:hover .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#90caf9",
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: inflectGreen,
           },
-          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#90caf9",
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: inflectGreen,
           },
         },
         input: {
-          color: "#ffffff",
+          color: inflectNavy,
         },
       },
     },
     MuiInputLabel: {
       styleOverrides: {
         root: {
-          color: "#90caf9",
-          "&.Mui-focused": {
-            color: "#90caf9",
+          color: inflectNavy,
+          '&.Mui-focused': {
+            color: inflectGreen,
+          },
+        },
+      },
+    },
+  },
+});
+
+export const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: inflectGreen,
+    },
+    secondary: {
+      main: '#ffffff',
+    },
+    background: {
+      default: inflectNavy,
+      paper: inflectNavy,
+    },
+    text: {
+      primary: '#ffffff',
+      secondary: '#8A8E9A',
+    },
+  },
+  typography: {
+    fontFamily: 'Roboto, Arial, sans-serif',
+  },
+  components: {
+    MuiSelect: {
+      styleOverrides: {
+        root: {
+          backgroundColor: inflectGreen,
+          color: '#ffffff',
+        },
+        icon: {
+          color: '#ffffff',
+        },
+        select: {
+          backgroundColor: inflectNavy,
+          color: '#ffffff',
+        },
+      },
+    },
+    MuiTableHead: {
+      styleOverrides: {
+        root: {
+          backgroundColor: inflectGreen,
+          '& .MuiTableCell-head': {
+            color: inflectNavy,
+            fontWeight: 'bold',
+          },
+        },
+      },
+    },
+    MuiMenu: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: inflectNavy,
+          color: '#ffffff',
+        },
+      },
+    },
+    MuiAutocomplete: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: inflectNavy,
+          color: '#ffffff',
+        },
+        option: {
+          color: '#ffffff',
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: inflectGreen,
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: inflectGreen,
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: inflectGreen,
+          },
+        },
+        input: {
+          color: '#ffffff',
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          color: inflectGreen,
+          '&.Mui-focused': {
+            color: inflectGreen,
           },
         },
       },
