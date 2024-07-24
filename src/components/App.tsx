@@ -41,11 +41,30 @@ import PipelineTable from './PipelineTable';
 import { Pipeline } from '../types/pipelines';
 import { Processor } from '../types/processor';
 
-const drawerWidth = 240;
+const drawerWidth = 200;
+
+// const AppBarStyled = styled(AppBar, {
+//   shouldForwardProp: (prop) => prop !== 'open',
+// })<{ open?: boolean }>(({ theme, open }) => ({
+//   transition: theme.transitions.create(['margin', 'width'], {
+//     easing: theme.transitions.easing.sharp,
+//     duration: theme.transitions.duration.leavingScreen,
+//   }),
+//   ...(open && {
+//     width: `calc(100% - ${drawerWidth}px)`,
+//     marginLeft: `${drawerWidth}px`,
+//     transition: theme.transitions.create(['margin', 'width'], {
+//       easing: theme.transitions.easing.easeOut,
+//       duration: theme.transitions.duration.enteringScreen,
+//     }),
+//   }),
+// }));
 
 const AppBarStyled = styled(AppBar, {
   shouldForwardProp: (prop) => prop !== 'open',
 })<{ open?: boolean }>(({ theme, open }) => ({
+  height: '110px', // Set the height to 110px
+  justifyContent: 'center', // Center the content vertically
   transition: theme.transitions.create(['margin', 'width'], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -65,8 +84,10 @@ export const DrawerHeader = styled('div')(({ theme }) => ({
   alignItems: 'center',
   padding: theme.spacing(0, 1),
   ...theme.mixins.toolbar,
-  justifyContent: 'flex-end',
+  justifyContent: 'space-between', // Changed from 'flex-end' to 'space-between'
   backgroundColor: theme.palette.background.paper,
+  width: drawerWidth,
+  boxSizing: 'border-box',
 }));
 
 const DrawerButton = styled(ListItemButton)(({ theme }) => ({
@@ -95,6 +116,7 @@ const Main = styled('main', {
     duration: theme.transitions.duration.leavingScreen,
   }),
   marginLeft: `-${drawerWidth}px`,
+  marginTop: '110px', // Add this line to push content below the AppBar
   ...(open && {
     transition: theme.transitions.create('margin', {
       easing: theme.transitions.easing.easeOut,
@@ -270,7 +292,7 @@ function App() {
       <CssBaseline />
       <Box sx={{ display: 'flex' }}>
         <AppBarStyled position='fixed' open={open}>
-          <Toolbar>
+          <Toolbar sx={{ height: '100%' }}>
             <IconButton
               color='inherit'
               aria-label='open drawer'
@@ -301,17 +323,21 @@ function App() {
           sx={{
             width: drawerWidth,
             flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: drawerWidth,
-              boxSizing: 'border-box',
-              backgroundColor: theme.palette.background.paper,
-            },
           }}
           variant='persistent'
           anchor='left'
           open={open}
         >
           <DrawerHeader>
+            <img
+              src={
+                theme.palette.mode === 'dark'
+                  ? '/logo_transparent_png_dark.png'
+                  : '/logo_transparent_png_light.png'
+              }
+              alt='Inflect Logo'
+              style={{ height: '110px', width: 'auto' }}
+            />
             <IconButton onClick={() => setOpen(false)}>
               {theme.direction === 'ltr' ? (
                 <ChevronLeftIcon />
