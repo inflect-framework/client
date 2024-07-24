@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   Button,
   Dialog,
@@ -8,39 +9,36 @@ import {
 } from '@mui/material';
 
 interface DialogPipelineCreationWarningProps {
-  warningDialogOpen: boolean;
-  setWarningDialogOpen: (open: boolean) => void;
-  setConfirmDialogOpen: (open: boolean) => void;
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  message: string;
+  onConfirm?: () => void;
+  onAcknowledge?: () => void;
 }
 
-const DialogPipelineCreationWarning = ({
-  warningDialogOpen,
-  setWarningDialogOpen,
-  setConfirmDialogOpen,
-}: DialogPipelineCreationWarningProps) => {
+const DialogPipelineCreationWarning: React.FC<
+  DialogPipelineCreationWarningProps
+> = ({ open, onClose, title, message, onConfirm, onAcknowledge }) => {
   return (
-    <Dialog
-      open={warningDialogOpen}
-      onClose={() => setWarningDialogOpen(false)}
-    >
-      <DialogTitle>Schema Validation Warning</DialogTitle>
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle>{title}</DialogTitle>
       <DialogContent>
-        <DialogContentText>
-          No outgoing schema selected. The pipeline will be processed without
-          schema validation. Is that okay?
-        </DialogContentText>
+        <DialogContentText>{message}</DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setWarningDialogOpen(false)}>No</Button>
-        <Button
-          onClick={() => {
-            setWarningDialogOpen(false);
-            setConfirmDialogOpen(true);
-          }}
-          autoFocus
-        >
-          Yes
-        </Button>
+        {onConfirm ? (
+          <>
+            <Button onClick={onClose}>No</Button>
+            <Button onClick={onConfirm} autoFocus>
+              Yes
+            </Button>
+          </>
+        ) : (
+          <Button onClick={onAcknowledge || onClose} autoFocus>
+            OK
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );
