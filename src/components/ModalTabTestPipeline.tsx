@@ -3,13 +3,29 @@ import TabPanel from './TabPanel';
 import { Box, Typography, Button, TextField } from '@mui/material';
 import { SchemaFormat } from '../types/schema';
 import { getTestResults } from '../utils/getTestResults';
-import Editor from '@monaco-editor/react';
+import { Editor, loader } from '@monaco-editor/react';
 import { postTestEvent } from '../utils/postTestEvent';
 import { Pipeline } from '../types/pipelines';
 import { postPipeline } from '../utils/postPipeline';
 import { Processor } from '../types/processor';
 import DialogPipelineCreationWarning from './DialogPipelineCreationWarning';
 import { putPipeline } from '../utils/putPipeline';
+
+
+loader.init().then(monaco => {
+  monaco.editor.defineTheme('inflectNavyTheme', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'comment', foreground: 'ffa500', fontStyle: 'italic underline' },
+      { token: 'keyword', foreground: '1DBF73' }
+    ],
+    colors: {
+      'editor.background': '#03091F',
+      'editor.foreground': '#FFFFFF'
+    }
+  });
+});
 
 interface ModalTabTestPipelineProps {
   selectedPipeline: Pipeline;
@@ -244,16 +260,16 @@ const ModalTabTestPipeline = ({
             color='primary'
             sx={{ mr: 2 }}
           >
-            Generate Test Event
+            Generate New Test Event
           </Button>
-          <Button onClick={handleTest} variant='contained' color='secondary'>
+          <Button onClick={handleTest} variant='contained' color='primary'>
             Test
           </Button>
         </Box>
         <Box sx={{ display: 'flex', gap: 2, height: '450px' }}>
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <Typography variant='subtitle1'>
-              Generated Editable Test Event:
+              Test Event:
             </Typography>
             <Box sx={{ flex: 1 }}>
               <Editor
@@ -261,6 +277,28 @@ const ModalTabTestPipeline = ({
                 language='json'
                 value={testEvent}
                 onChange={(value) => setTestEvent(value || '')}
+                theme='inflectNavyTheme'
+                options={{
+                  minimap: {
+                    enabled: false
+                  },
+                  scrollbar: {
+                    vertical: 'hidden',
+                    horizontal: 'hidden'
+                  },
+                  overviewRulerBorder: false,
+                  overviewRulerLanes: 0,
+                  hideCursorInOverviewRuler: true,
+                  glyphMargin: false,
+                  folding: false,
+                  lineNumbers: 'off',
+                  renderLineHighlight: 'none',
+                  renderValidationDecorations: 'off',
+                  wordWrap: 'on'
+                }}
+                beforeMount={(monaco) => {
+                  monaco.editor.setTheme('inflectNavyTheme');
+                }}
               />
             </Box>
           </Box>
@@ -269,7 +307,7 @@ const ModalTabTestPipeline = ({
             <TextField
               multiline
               fullWidth
-              rows={10}
+              rows={16}
               variant='outlined'
               value={testResult}
               InputProps={{
