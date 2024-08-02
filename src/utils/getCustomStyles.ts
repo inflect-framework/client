@@ -54,14 +54,22 @@
 import { StylesConfig } from 'react-select';
 import { SelectedOption } from '../types/SelectedOption';
 
+const inflectGreen = '#1DBF73';
+const inflectNavy = '#03091F';
+const inflectLightNavy = '#181D32'
+const inflectBackgroundGreen = '#051A27'
+
 export const getCustomStyles = (
   mode: 'light' | 'dark'
 ): StylesConfig<SelectedOption> => ({
   control: (provided) => ({
     ...provided,
-    backgroundColor: mode === 'dark' ? '#0A0E1A' : '#ffffff',
+    backgroundColor: mode === 'dark' ? inflectLightNavy : '#ffffff',
     color: mode === 'dark' ? '#ffffff' : '#0A0E1A',
-    borderColor: mode === 'dark' ? '#2A2E3A' : '#cccccc',
+    borderColor: mode === 'dark' ? inflectLightNavy : '#cccccc',
+    '&:hover': {
+      borderColor: inflectGreen
+    },
   }),
   menu: (provided) => ({
     ...provided,
@@ -76,10 +84,10 @@ export const getCustomStyles = (
     ...provided,
     backgroundColor: state.isSelected
       ? mode === 'dark'
-        ? '#00D1A1'
+        ? inflectNavy
         : '#E6F7F2'
       : mode === 'dark'
-      ? '#0A0E1A'
+      ? inflectLightNavy
       : '#ffffff',
     color: state.isSelected
       ? mode === 'dark'
@@ -89,7 +97,7 @@ export const getCustomStyles = (
       ? '#ffffff'
       : '#0A0E1A',
     '&:hover': {
-      backgroundColor: mode === 'dark' ? '#1A1E2A' : '#E6F7F2',
+      backgroundColor: mode === 'dark' ? '#22283B' : '#E6F7F2',
     },
   }),
   input: (provided) => ({
@@ -98,7 +106,7 @@ export const getCustomStyles = (
   }),
   placeholder: (provided) => ({
     ...provided,
-    color: mode === 'dark' ? '#8A8E9A' : '#4A4E5A',
+    color: mode === 'dark' ? '#1A1E2A' : '#4A4E5A',
   }),
 });
 

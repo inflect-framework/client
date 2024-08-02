@@ -2,6 +2,8 @@ import { createTheme } from '@mui/material/styles';
 
 const inflectGreen = '#1DBF73';
 const inflectNavy = '#03091F';
+const inflectBackgroundGreen = '#051A27'
+const inflectLightNavy = '#181D32'
 
 export const lightTheme = createTheme({
   palette: {
@@ -131,11 +133,26 @@ export const darkTheme = createTheme({
     fontFamily: '"Inter", "Roboto", "Arial", sans-serif',
   },
   components: {
+    MuiBackdrop: {
+      styleOverrides: {
+        root: {
+          backgroundColor: 'rgba(0, 0, 0, 0.85)'
+        },
+      }
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          backgroundColor: inflectBackgroundGreen,
+          color: inflectGreen,
+        },
+      }
+    },
     MuiSelect: {
       styleOverrides: {
         root: {
           backgroundColor: inflectGreen,
-          color: '#ffffff',
+          color: inflectGreen,
         },
         icon: {
           color: '#ffffff',
@@ -156,7 +173,7 @@ export const darkTheme = createTheme({
     MuiTableHead: {
       styleOverrides: {
         root: {
-          backgroundColor: '#051A27',
+          backgroundColor: inflectBackgroundGreen,
           '& .MuiTableCell-head': {
             color: inflectGreen,
             fontWeight: 'bold',
@@ -180,6 +197,26 @@ export const darkTheme = createTheme({
         },
         option: {
           color: '#ffffff',
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiInputBase-root': {
+            transition: 'background-color 0.3s, border-color 0.3s',
+            '&.has-content': {
+              backgroundColor: inflectBackgroundGreen,
+              border: '1px solid #ffffff',
+              borderColor: inflectGreen,
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: inflectBackgroundGreen,
+              },
+            },
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: inflectLightNavy
+            },
+          },
         },
       },
     },

@@ -313,6 +313,9 @@ const ModalTabTestPipeline = ({
               InputProps={{
                 readOnly: true,
                 sx: { height: '100%' },
+                classes: {
+                  root: testResult ? 'has-content' : '',
+                },
               }}
               sx={{ flex: 1 }}
             />
