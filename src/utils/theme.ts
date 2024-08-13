@@ -1,7 +1,9 @@
 import { createTheme } from '@mui/material/styles';
 
-const inflectGreen = '#00D1A1';
-const inflectNavy = '#0A0E1A';
+const inflectGreen = '#1DBF73';
+const inflectNavy = '#03091F';
+const inflectBackgroundGreen = '#051A27'
+const inflectLightNavy = '#181D32'
 
 export const lightTheme = createTheme({
   palette: {
@@ -18,11 +20,11 @@ export const lightTheme = createTheme({
     },
     text: {
       primary: inflectNavy,
-      secondary: '#4A4E5A',
+      secondary: '#03091F',
     },
   },
   typography: {
-    fontFamily: 'Roboto, Arial, sans-serif',
+    fontFamily: '"Inter", "Roboto", "Arial", sans-serif',
   },
   components: {
     MuiSelect: {
@@ -37,6 +39,14 @@ export const lightTheme = createTheme({
         select: {
           backgroundColor: '#ffffff',
           color: inflectNavy,
+        },
+      },
+    },
+    MuiList: {
+      styleOverrides: {
+        root: {
+          paddingLeft: '18px',
+          paddingRight: '30px'
         },
       },
     },
@@ -116,18 +126,33 @@ export const darkTheme = createTheme({
     },
     text: {
       primary: '#ffffff',
-      secondary: '#8A8E9A',
+      secondary: '#1DB573',
     },
   },
   typography: {
-    fontFamily: 'Roboto, Arial, sans-serif',
+    fontFamily: '"Inter", "Roboto", "Arial", sans-serif',
   },
   components: {
+    MuiBackdrop: {
+      styleOverrides: {
+        root: {
+          backgroundColor: 'rgba(0, 0, 0, 0.85)'
+        },
+      }
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          backgroundColor: inflectBackgroundGreen,
+          color: inflectGreen,
+        },
+      }
+    },
     MuiSelect: {
       styleOverrides: {
         root: {
           backgroundColor: inflectGreen,
-          color: '#ffffff',
+          color: inflectGreen,
         },
         icon: {
           color: '#ffffff',
@@ -138,12 +163,19 @@ export const darkTheme = createTheme({
         },
       },
     },
+    MuiList: {
+      styleOverrides: {
+        root: {
+          paddingLeft: '18px',
+        },
+      },
+    },
     MuiTableHead: {
       styleOverrides: {
         root: {
-          backgroundColor: inflectGreen,
+          backgroundColor: inflectBackgroundGreen,
           '& .MuiTableCell-head': {
-            color: inflectNavy,
+            color: inflectGreen,
             fontWeight: 'bold',
           },
         },
@@ -165,6 +197,26 @@ export const darkTheme = createTheme({
         },
         option: {
           color: '#ffffff',
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiInputBase-root': {
+            transition: 'background-color 0.3s, border-color 0.3s',
+            '&.has-content': {
+              backgroundColor: inflectBackgroundGreen,
+              border: '1px solid #ffffff',
+              borderColor: inflectGreen,
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: inflectBackgroundGreen,
+              },
+            },
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: inflectLightNavy
+            },
+          },
         },
       },
     },

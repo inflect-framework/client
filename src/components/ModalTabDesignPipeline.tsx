@@ -185,7 +185,7 @@ const ModalTabDesignPipeline = ({
           gap: 0,
         }}
       >
-        <Typography>Name</Typography>
+        <Typography>Pipeline Name</Typography>
         <Input
           required
           sx={{
