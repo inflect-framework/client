@@ -118,63 +118,56 @@ const CurrentPipelineProcessors = ({
         }>,
     index: number
   ) => {
-    const newProcessorId = processorOptions.find(
+    const selectedProcessor = processorOptions.find(
       (processor) =>
         processor.processor_name === (selectedOption as SelectedOption).value
-    )?.id;
+    );
 
-    if (!newProcessorId) {
+    if (!selectedProcessor) {
       return;
     }
 
-    selectedPipeline.steps.processors[index] = Number(newProcessorId);
-    if (selectedPipeline.steps.hasOwnProperty('dlqs')) {
-      selectedPipeline.steps.dlqs[index] = null;
+    const newPipeline = { ...selectedPipeline };
+    newPipeline.steps.processors[index] = Number(selectedProcessor.id);
+    if (newPipeline.steps.hasOwnProperty('dlqs')) {
+      newPipeline.steps.dlqs[index] = null;
     }
 
-    setSelectedPipeline({ ...selectedPipeline });
+    setSelectedPipeline(newPipeline);
   };
+  
   return (
     <>
-      {selectedPipeline.steps.processors.map((processor, index) => (
-        <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ flex: 1 }}>
-            {selectedPipeline.steps.dlqs &&
-            selectedPipeline.steps.dlqs.at(index) !==
-              null /* todo: add filters */ ? //       isClearable //       // onChange={handleAddFilterTopic} //       }))} //         label: topic, //         value: topic, //       options={topics.map((topic) => ({ //     <Select //     <Typography>Topic On Fail</Typography> //   <Box sx={{ flex: 1 }}> //   </Box> //     /> //       styles={getCustomStyles(mode)} //       isClearable //       } //         handleAddPipelineStep(selectedOption, actionMeta, index) //       onChange={(selectedOption, actionMeta) => //         }))} //           label: processor.processor_name, //           value: processor.processor_name, //         .map((processor) => ({ //         .filter((p) => p.is_filter) //       options={processorOptions //     <Select //     </Typography> //         .indexOf(item) + 1} //         .filter((p) => p.is_filter) //       {displayedProcessorSelectOptions //       Filter{' '} //     <Typography> //   <Box sx={{ flex: 1 }}> // <>
-            //       styles={getCustomStyles(mode)}
-            //     />
-            //   </Box>
-            // </>
-            null : (
-              <>
-                <Typography>Transformation </Typography>
-                <Select
-                  options={processorOptions
-                    .filter((p) => !p.is_filter)
-                    .map((processorOption) => ({
-                      value: processorOption.processor_name,
-                      label: processorOption.processor_name,
-                    }))}
-                  value={handleDefaultProcessorSelect(processor)}
-                  isClearable
-                  styles={getCustomStyles(mode)}
-                  onChange={(selectedOption) =>
-                    handleProcessorChange(selectedOption, index)
-                  }
-                />
-              </>
-            )}
+      {selectedPipeline.steps.processors.map((processorId, index) => (
+        <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ flex: 1, mr: 2 }}>
+            <Select
+              value={handleDefaultProcessorSelect(processorId)}
+              onChange={(selectedOption) =>
+                handleProcessorChange(selectedOption, index)
+              }
+              options={processorOptions.map((processor) => ({
+                value: processor.processor_name,
+                label: `${processor.processor_name} (${processor.is_filter ? 'Filter' : 'Transformation'})`,
+              }))}
+              styles={getCustomStyles(mode)}
+            />
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton onClick={() => handleRemovePipelineStep(index)}>
-              <DeleteIcon />
-            </IconButton>
-            <IconButton onClick={() => handleMoveUp(index)}>
+          <Box>
+            <IconButton
+              onClick={() => handleMoveUp(index)}
+              disabled={index === 0}
+            >
               <ArrowUpwardIcon />
             </IconButton>
-            <IconButton onClick={() => handleMoveDown(index)}>
+            <IconButton
+              onClick={() => handleMoveDown(index)}
+              disabled={index === selectedPipeline.steps.processors.length - 1}
+            >
               <ArrowDownwardIcon />
+            </IconButton>
+            <IconButton onClick={() => handleRemovePipelineStep(index)}>
+              <DeleteIcon />
             </IconButton>
           </Box>
         </Box>

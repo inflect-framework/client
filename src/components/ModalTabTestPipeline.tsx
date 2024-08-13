@@ -10,6 +10,7 @@ import { postPipeline } from '../utils/postPipeline';
 import { Processor } from '../types/processor';
 import DialogPipelineCreationWarning from './DialogPipelineCreationWarning';
 import { putPipeline } from '../utils/putPipeline';
+import { CheckCircle, Error, PendingOutlined, Cancel } from '@mui/icons-material';
 
 
 loader.init().then(monaco => {
@@ -27,6 +28,8 @@ loader.init().then(monaco => {
   });
 });
 
+type ProcessingResult = { name: string; status: 'success' | 'error' | 'pending'; filtered: boolean };
+
 interface ModalTabTestPipelineProps {
   selectedPipeline: Pipeline;
   tabValue: number;
@@ -37,8 +40,8 @@ interface ModalTabTestPipelineProps {
   setTestResult: React.Dispatch<React.SetStateAction<string>>;
   processorOptions: Processor[];
   pipelines: Pipeline[];
-  processingResults: Array<{ name: string; status: 'success' | 'error' | 'pending' }>;
-setProcessingResults: React.Dispatch<React.SetStateAction<Array<{ name: string; status: 'success' | 'error' | 'pending' }>>>;
+  processingResults: ProcessingResult[];
+  setProcessingResults: React.Dispatch<React.SetStateAction<ProcessingResult[]>>;
 }
 
 const ModalTabTestPipeline = ({
@@ -77,59 +80,61 @@ const ModalTabTestPipeline = ({
 
   const runTest = () => {
     const request = async () => {
-      const [selectedIncomingSchemaFormat, dlqs] = [
-        selectedPipeline.incoming_schema,
-        selectedPipeline.steps.dlqs,
-      ];
-  
-      if (dlqs.length === 0) {
-        dlqs.push(selectedPipeline.target_topic);
-      }
-  
       const steps: string[] = selectedPipeline.steps.processors
         .map(
           (processor) =>
             processorOptions.find((p) => p.id === processor)?.processor_name
         )
         .filter((name): name is string => !!name);
-  
-      setProcessingResults(steps.map(step => ({ name: step, status: 'pending' })));
-  
-      return await getTestResults({
-        selectedIncomingSchemaFormat,
-        testEvent,
+
+      setProcessingResults(steps.map(step => ({ name: step, status: 'pending', filtered: false })));
+
+      const requestBody = {
+        event: testEvent,
         steps,
-        dlqs,
-      });
+        dlqs: selectedPipeline.steps.dlqs,
+        incomingSchema: selectedPipeline.incoming_schema,
+        outgoingSchema: selectedPipeline.outgoing_schema,
+      };
+
+      console.log('Sending test pipeline request:', requestBody);
+
+      return await getTestResults(requestBody);
     };
-  
+
     request()
       .then((result) => {
         if (!result) {
           console.error(
             'No result returned from test pipeline request',
             'Request body:',
-            { selectedIncomingSchemaFormat, testEvent }
+            { testEvent }
           );
           return;
         }
-        setTestResult(JSON.stringify(result.transformedMessage, null, 2));
-  
+        
         if (result.filteredAt) {
+          setTestResult(`Message filtered at step: ${result.filteredAt}`);
           setProcessingResults(prev => 
-            prev.map(step => 
-              step.name === result.filteredAt 
-                ? { ...step, status: 'error' } 
-                : step.name === result.transformedMessage ? { ...step, status: 'success' } : step
-            )
+            prev.map((step, index) => {
+              if (index < prev.findIndex(s => s.name === result.filteredAt)) {
+                return { ...step, status: 'success', filtered: false };
+              } else if (step.name === result.filteredAt) {
+                return { ...step, status: 'success', filtered: true };
+              } else {
+                return { ...step, status: 'error', filtered: false };
+              }
+            })
           );
         } else {
-          setProcessingResults(prev => prev.map(step => ({ ...step, status: 'success' })));
+          setTestResult(JSON.stringify(result.transformedMessage, null, 2));
+          setProcessingResults(prev => prev.map(step => ({ ...step, status: 'success', filtered: false })));
         }
       })
       .catch((error) => {
         console.error('Error attempting to test generated event:', error);
-        setProcessingResults(prev => prev.map(step => ({ ...step, status: 'error' })));
+        setTestResult('Error occurred during pipeline test');
+        setProcessingResults(prev => prev.map(step => ({ ...step, status: 'error', filtered: false })));
       });
   };
 
@@ -347,20 +352,23 @@ const ModalTabTestPipeline = ({
             }}
           >
             <Typography variant='subtitle1'>
-              Transformations and Filters:
+              Steps:
             </Typography>
             <Box sx={{ mt: 2, flex: 1 }}>
-              <Typography>Incoming Schema</Typography>
-              {processingResults.map((step, index) => (
-                <Typography 
-                  key={index} 
-                  color={step.status === 'success' ? 'green' : step.status === 'error' ? 'error' : 'inherit'}
-                >
-                  {step.name}
-                </Typography>
-              ))}
-              <Typography>Outgoing Schema</Typography>
-            </Box>
+            {processingResults.map((step, index) => (
+              <Typography 
+                key={index} 
+                color={step.filtered ? 'error' : step.status === 'success' ? '#1DBF73' : step.status === 'error' ? 'error' : 'inherit'}
+                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+              >
+                {step.status === 'success' && !step.filtered && <CheckCircle sx={{color: "#1DBF73"}} />}
+                {step.status === 'success' && step.filtered && <Cancel color="error" />}
+                {step.status === 'error' && <Error color="error" />}
+                {step.status === 'pending' && <PendingOutlined color="action" />}
+                {step.name}
+              </Typography>
+            ))}
+          </Box>
           </Box>
         </Box>
         <Button

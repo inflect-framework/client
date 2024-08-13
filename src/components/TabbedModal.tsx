@@ -5,6 +5,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { Processor } from '../types/processor';
 import { SchemaFormat } from '../types/schema';
 import { Pipeline } from '../types/pipelines';
+import { ProcessingResult } from '../types/pipelines';
 import PipelineConfirmationDialog from './DialogConfirmCreatePipeline';
 import DesignPipelineTab from './ModalTabDesignPipeline';
 import TestPipelineTab from './ModalTabTestPipeline';
@@ -55,7 +56,7 @@ const TabbedModal = ({
   const [testEvent, setTestEvent] = useState('');
   const [testResult, setTestResult] = useState('');
   const [schemaType, setSchemaType] = useState<SchemaFormat>('json');
-  const [processingResults, setProcessingResults] = useState<Array<{ name: string; status: 'success' | 'error' | 'pending' }>>([]);
+  const [processingResults, setProcessingResults] = useState<ProcessingResult[]>([]);
   
   useEffect(() => {
     if (selectedPipeline.steps && selectedPipeline.steps.dlqs) {

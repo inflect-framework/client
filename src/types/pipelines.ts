@@ -26,3 +26,9 @@ export interface FrontendPipeline {
   };
   steps: Steps;
 }
+
+export interface ProcessingResult {
+  name: string;
+  status: 'success' | 'error' | 'pending';
+  filtered: boolean;
+}

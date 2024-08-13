@@ -29,7 +29,7 @@ const ModalTabDesignPipeline = ({
   processorOptions,
   setSelectedPipeline,
 }: ModalTabDesignPipelineProps) => {
-  const handleDisplayNewProcessorSelect = (type: string, index: number) => {
+  const handleDisplayNewProcessorSelect = (type: 'transformation' | 'filter', index: number) => {
     const newPipeline = { ...selectedPipeline };
     newPipeline.steps.processors = [...selectedPipeline.steps.processors];
 
@@ -48,12 +48,9 @@ const ModalTabDesignPipeline = ({
       ).fill(null);
     }
 
-    if (type === 'transformation') {
-      newPipeline.steps.processors.splice(
-        index,
-        0,
-        processorOptions[0].id as number
-      );
+    const defaultProcessor = processorOptions.find(p => p.is_filter === (type === 'filter'));
+    if (defaultProcessor) {
+      newPipeline.steps.processors.splice(index, 0, defaultProcessor.id as number);
       newPipeline.steps.dlqs.splice(index, 0, null);
     }
 
@@ -296,6 +293,28 @@ const ModalTabDesignPipeline = ({
           </Box>
         </Box>
         <Divider sx={{ my: 2 }} />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+          <Typography variant="h6">Processors</Typography>
+          <Box>
+            <Button
+              variant="outlined"
+              onClick={() =>
+                handleDisplayNewProcessorSelect('transformation', selectedPipeline.steps.processors.length)
+              }
+              sx={{ mr: 1 }}
+            >
+              Add Transformation
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() =>
+                handleDisplayNewProcessorSelect('filter', selectedPipeline.steps.processors.length)
+              }
+            >
+              Add Filter
+            </Button>
+          </Box>
+        </Box>
         <CurrentPipelineProcessors
           selectedPipeline={selectedPipeline}
           processorOptions={processorOptions}
@@ -303,34 +322,6 @@ const ModalTabDesignPipeline = ({
           mode={mode}
           setSelectedPipeline={setSelectedPipeline}
         />
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            onClick={() =>
-              handleDisplayNewProcessorSelect(
-                'transformation',
-                selectedPipeline.steps.processors.length
-              )
-            }
-            variant='contained'
-            startIcon={<AddIcon />}
-            sx={{ width: 'fit-content', alignSelf: 'flex-start' }}
-          >
-            Add Transformation
-          </Button>
-          <Button
-            onClick={() =>
-              handleDisplayNewProcessorSelect(
-                'filter',
-                selectedPipeline.steps.processors.length
-              )
-            }
-            variant='contained'
-            startIcon={<AddIcon />}
-            sx={{ width: 'fit-content', alignSelf: 'flex-start' }}
-          >
-            Add Filter
-          </Button>
-        </Box>
       </Box>
     </TabPanel>
   );

@@ -2,28 +2,24 @@ import axios from 'axios';
 import z from 'zod';
 
 const getTestResultsSchema = z.object({
-  format: z.string().min(1),
   event: z.string().min(1),
-  steps: z.array(z.string().nullable()),
-  dlqs: z.array(z.string().nullable()).min(1),
+  steps: z.array(z.string()),
+  dlqs: z.array(z.string().nullable()),
 });
 
 interface TestResultsArgs {
-  selectedIncomingSchemaFormat: string;
-  testEvent: string;
+  event: string;
   steps: string[];
   dlqs: (string | null)[];
 }
 
 export const getTestResults = async ({
-  selectedIncomingSchemaFormat,
-  testEvent,
+  event,
   steps,
   dlqs,
 }: TestResultsArgs) => {
   const body = {
-    format: selectedIncomingSchemaFormat,
-    event: testEvent,
+    event,
     steps,
     dlqs,
   };
