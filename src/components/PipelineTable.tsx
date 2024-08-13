@@ -94,7 +94,8 @@ const PipelineTable = ({
                   <TableCell>Source Topic</TableCell>
                   <TableCell>Target Topic</TableCell>
                   <TableCell>Processing Steps</TableCell>
-                  <TableCell>Pause Pipeline</TableCell>
+                  <TableCell>Pipeline Status</TableCell>
+                  <TableCell>Pause</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -164,6 +165,11 @@ const PipelineTable = ({
                                 </Typography>
                               </AccordionDetails>
                             </Accordion>
+                          </TableCell>
+                          <TableCell>
+                          <a onClick={() => toggleModal(pipeline)}>
+                            <Typography sx={pipeline.is_active ? {color: '#ADE8CC'} : {color: '#FFA2C7'}}>{pipeline.is_active ? 'Active' : 'Inactive'}</Typography>
+                          </a>
                           </TableCell>
                           <TableCell>
                             <a
