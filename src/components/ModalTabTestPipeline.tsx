@@ -37,6 +37,8 @@ interface ModalTabTestPipelineProps {
   setTestResult: React.Dispatch<React.SetStateAction<string>>;
   processorOptions: Processor[];
   pipelines: Pipeline[];
+  processingResults: Array<{ name: string; status: 'success' | 'error' | 'pending' }>;
+setProcessingResults: React.Dispatch<React.SetStateAction<Array<{ name: string; status: 'success' | 'error' | 'pending' }>>>;
 }
 
 const ModalTabTestPipeline = ({
@@ -49,6 +51,8 @@ const ModalTabTestPipeline = ({
   setTestResult,
   processorOptions,
   pipelines,
+  processingResults,
+  setProcessingResults,
 }: ModalTabTestPipelineProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogTitle, setDialogTitle] = useState('');
@@ -77,18 +81,20 @@ const ModalTabTestPipeline = ({
         selectedPipeline.incoming_schema,
         selectedPipeline.steps.dlqs,
       ];
-
+  
       if (dlqs.length === 0) {
         dlqs.push(selectedPipeline.target_topic);
       }
-
+  
       const steps: string[] = selectedPipeline.steps.processors
         .map(
           (processor) =>
             processorOptions.find((p) => p.id === processor)?.processor_name
         )
         .filter((name): name is string => !!name);
-
+  
+      setProcessingResults(steps.map(step => ({ name: step, status: 'pending' })));
+  
       return await getTestResults({
         selectedIncomingSchemaFormat,
         testEvent,
@@ -96,7 +102,7 @@ const ModalTabTestPipeline = ({
         dlqs,
       });
     };
-
+  
     request()
       .then((result) => {
         if (!result) {
@@ -108,9 +114,22 @@ const ModalTabTestPipeline = ({
           return;
         }
         setTestResult(JSON.stringify(result.transformedMessage, null, 2));
+  
+        if (result.filteredAt) {
+          setProcessingResults(prev => 
+            prev.map(step => 
+              step.name === result.filteredAt 
+                ? { ...step, status: 'error' } 
+                : step.name === result.transformedMessage ? { ...step, status: 'success' } : step
+            )
+          );
+        } else {
+          setProcessingResults(prev => prev.map(step => ({ ...step, status: 'success' })));
+        }
       })
       .catch((error) => {
         console.error('Error attempting to test generated event:', error);
+        setProcessingResults(prev => prev.map(step => ({ ...step, status: 'error' })));
       });
   };
 
@@ -332,10 +351,14 @@ const ModalTabTestPipeline = ({
             </Typography>
             <Box sx={{ mt: 2, flex: 1 }}>
               <Typography>Incoming Schema</Typography>
-              <Typography>Transformation 1</Typography>
-              <Typography>Filter 1</Typography>
-              <Typography>Transformation 2</Typography>
-              <Typography color='error'>Filter 2 (Error)</Typography>
+              {processingResults.map((step, index) => (
+                <Typography 
+                  key={index} 
+                  color={step.status === 'success' ? 'green' : step.status === 'error' ? 'error' : 'inherit'}
+                >
+                  {step.name}
+                </Typography>
+              ))}
               <Typography>Outgoing Schema</Typography>
             </Box>
           </Box>

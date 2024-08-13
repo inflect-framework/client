@@ -55,7 +55,8 @@ const TabbedModal = ({
   const [testEvent, setTestEvent] = useState('');
   const [testResult, setTestResult] = useState('');
   const [schemaType, setSchemaType] = useState<SchemaFormat>('json');
-
+  const [processingResults, setProcessingResults] = useState<Array<{ name: string; status: 'success' | 'error' | 'pending' }>>([]);
+  
   useEffect(() => {
     if (selectedPipeline.steps && selectedPipeline.steps.dlqs) {
       console.log('DLQ LENGTH CHANGED', selectedPipeline.steps.dlqs);
@@ -150,6 +151,8 @@ const TabbedModal = ({
             setTestResult={setTestResult}
             processorOptions={processorOptions}
             pipelines={pipelines}
+            processingResults={processingResults}
+            setProcessingResults={setProcessingResults}
           />
         </Box>
       </Modal>
