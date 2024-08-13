@@ -344,7 +344,7 @@ const ModalTabTestPipeline = ({
           onClick={() => pipelineServerPost()}
           variant='contained'
           color='secondary'
-          sx={{ width: 'fit-content', alignSelf: 'flex-start', mt: 2 }}
+          sx={{ width: 'fit-content', alignSelf: 'flex-start', mt: 2, color: '#03091F', backgroundColor: '#189E64' }}
         >
           {isNaN(selectedPipeline.id) ? 'Create Pipeline' : 'Update Pipeline'}
         </Button>

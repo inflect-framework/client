@@ -142,7 +142,9 @@ const PipelineTable = ({
                                 aria-controls={`panel-${pipeline.id}-content`}
                                 id={`panel-${pipeline.id}-header`}
                               >
-                                <Typography>
+                                <Typography
+                                sx={{fontSize: '14px'}}
+                                >
                                   {pipeline.steps.processors.length} Processor
                                   {pipeline.steps.processors.length !== 1
                                     ? 's'
@@ -150,7 +152,7 @@ const PipelineTable = ({
                                 </Typography>
                               </AccordionSummary>
                               <AccordionDetails>
-                                <Typography>
+                                <Typography sx={{fontSize: '14px'}}>
                                   {pipeline.steps.processors
                                     .map(
                                       (processor) =>
