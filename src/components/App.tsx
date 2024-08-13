@@ -233,7 +233,7 @@ function App() {
 
   const toggleModal = (pipeline: Pipeline) => {
     setSelectedPipeline(pipeline);
-    setModalDisplayed((prev) => !prev);
+    setModalDisplayed(true);
   };
 
   const pausePipeline = (pipelineID: number) => {

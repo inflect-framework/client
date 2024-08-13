@@ -57,9 +57,11 @@ const TabbedModal = ({
   const [schemaType, setSchemaType] = useState<SchemaFormat>('json');
 
   useEffect(() => {
-    console.log('DLQ LENGTH CHANGED', selectedPipeline.steps.dlqs);
-    console.log('PROCESSORS', selectedPipeline.steps.processors);
-  }, [selectedPipeline.steps.dlqs.length]);
+    if (selectedPipeline.steps && selectedPipeline.steps.dlqs) {
+      console.log('DLQ LENGTH CHANGED', selectedPipeline.steps.dlqs);
+      console.log('PROCESSORS', selectedPipeline.steps.processors);
+    }
+  }, [selectedPipeline.steps?.dlqs?.length]);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
